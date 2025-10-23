@@ -1,427 +1,1053 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Content Workflow Dashboard</title>
+    <!-- GANTI DENGAN CLIENT ID ANDA DARI GOOGLE CLOUD CONSOLE -->
     <meta name="google-signin-client_id" content="347511642599-d556suv6pt1li48ppgc7fd04bevgt5tg.apps.googleusercontent.com">
+    <title>Content Workflow Dashboard</title>
+    
+    <!-- 1. Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Chart.js (Grafik) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <!-- 3. SweetAlert2 (Notifikasi & Modal) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- 4. GSAP (Animasi) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.5/gsap.min.js"></script>
+    
+    <!-- 5. Google Platform Library (Otentikasi) -->
+    <script src="https://apis.google.com/js/platform.js" async defer></script>
+    
+    <!-- 6. Ikon (Lucide) -->
+    <script src="https://unpkg.com/lucide-react@latest/dist/umd/lucide.min.js"></script>
+
     <style>
-        .sidebar-link {
-            transition: all 0.2s ease-in-out;
+        /* Font Kustom */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
         }
-        .sidebar-link.active {
-            background-color: #4f46e5;
-            color: white;
-        }
-        .sidebar-link:hover {
-            background-color: #312e81;
-            color: white;
-        }
-        .view {
+        /* Sembunyikan scrollbar untuk chrome, safari, opera */
+        .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
-        .view.active {
-            display: block;
+        /* Sembunyikan scrollbar untuk IE, Edge, Firefox */
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        /* Styling untuk chart.js tooltip */
+        .chartjs-tooltip {
+            opacity: 1;
+            position: absolute;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border-radius: 3px;
+            -webkit-transition: all .1s ease;
+            transition: all .1s ease;
+            pointer-events: none;
+            -webkit-transform: translate(-50%, 0);
+            transform: translate(-50%, 0);
+            padding: 4px 8px;
+            font-size: 12px;
         }
     </style>
 </head>
-<body class="bg-gray-100 font-sans">
-    <div id="auth-screen" class="flex items-center justify-center h-screen">
-        <div class="text-center p-8 bg-white rounded-lg shadow-lg">
-            <h1 class="text-3xl font-bold text-gray-800 mb-4">Content Workflow System</h1>
-            <p class="text-gray-600 mb-6">Silakan masuk dengan akun Google Anda untuk melanjutkan.</p>
-            <div id="g_id_onload"
-                 data-client_id="347511642599-d556suv6pt1li48ppgc7fd04bevgt5tg.apps.googleusercontent.com"
-                 data-callback="handleCredentialResponse">
-            </div>
-            <div class="g_id_signin"
-                 data-type="standard"
-                 data-shape="rectangular"
-                 data-theme="outline"
-                 data-text="sign_in_with"
-                 data-size="large"
-                 data-logo_alignment="left">
-            </div>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+
+    <!-- ===== HALAMAN LOGIN ===== -->
+    <div id="login-screen" class="flex items-center justify-center min-h-screen">
+        <div class="text-center p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full" id="login-box">
+            <h1 class="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">ContentFlow</h1>
+            <p class="text-gray-600 dark:text-gray-300 mb-6">Manajemen Workflow Tim Kreator</p>
+            <p class="text-sm text-gray-500 mb-4">Silakan login dengan akun Google Anda untuk melanjutkan.</p>
+            <!-- Tombol Google Sign-In -->
+            <div id="google-signin-button" class="g-signin2" data-onsuccess="onSignIn" data-theme="dark" data-width="240" data-height="50" data-longtitle="true" style="display: inline-block;"></div>
+            <p id="auth-status" class="text-sm text-red-500 mt-4"></p>
         </div>
     </div>
 
-    <div id="app-screen" class="hidden">
-        <div class="flex h-screen">
-            <aside class="w-64 bg-gray-800 text-white flex flex-col">
-                <div class="p-4 border-b border-gray-700">
-                    <h2 class="text-2xl font-bold">Dashboard</h2>
-                </div>
-                <nav class="flex-1 p-2 space-y-2">
-                    <a href="#" data-view="dashboard" class="sidebar-link active flex items-center p-3 rounded-lg">Dashboard</a>
-                    <a href="#" data-view="tasks" class="sidebar-link flex items-center p-3 rounded-lg">Manajemen Tugas</a>
-                    <a href="#" data-view="schedule" class="sidebar-link flex items-center p-3 rounded-lg">Kalender Posting</a>
-                    <a href="#" data-view="analytics" class="sidebar-link flex items-center p-3 rounded-lg">Analitik</a>
-                    <a href="#" data-view="team" class="sidebar-link flex items-center p-3 rounded-lg">Tim</a>
-                </nav>
-                <div class="p-4 border-t border-gray-700">
-                    <div id="user-profile" class="flex items-center">
-                        <img id="user-avatar" src="" class="w-10 h-10 rounded-full mr-3">
-                        <div>
-                            <p id="user-name" class="font-semibold"></p>
-                            <p id="user-email" class="text-sm text-gray-400"></p>
-                        </div>
-                    </div>
-                    <button id="logout-btn" class="w-full mt-4 bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg">Logout</button>
-                </div>
-            </aside>
-
-            <main class="flex-1 p-8 overflow-y-auto">
-                <div id="view-dashboard" class="view active">
-                    <h1 class="text-3xl font-bold text-gray-800 mb-6">Selamat Datang!</h1>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="bg-white p-6 rounded-lg shadow-md">
-                            <h3 class="text-lg font-semibold text-gray-700">Tugas Aktif</h3>
-                            <p id="dashboard-active-tasks" class="text-4xl font-bold text-indigo-600">0</p>
-                        </div>
-                        <div class="bg-white p-6 rounded-lg shadow-md">
-                            <h3 class="text-lg font-semibold text-gray-700">Menunggu Persetujuan</h3>
-                            <p id="dashboard-pending-approval" class="text-4xl font-bold text-amber-600">0</p>
-                        </div>
-                        <div class="bg-white p-6 rounded-lg shadow-md">
-                            <h3 class="text-lg font-semibold text-gray-700">Konten Terjadwal</h3>
-                            <p id="dashboard-scheduled-posts" class="text-4xl font-bold text-green-600">0</p>
-                        </div>
-                    </div>
-                    <div class="mt-8 bg-white p-6 rounded-lg shadow-md">
-                        <h3 class="text-xl font-semibold mb-4">Aktivitas Terbaru</h3>
-                        <ul id="dashboard-activity-log" class="space-y-3">
-                            </ul>
-                    </div>
-                </div>
-
-                <div id="view-tasks" class="view">
-                    <div class="flex justify-between items-center mb-6">
-                        <h1 class="text-3xl font-bold text-gray-800">Manajemen Tugas</h1>
-                        <button id="add-task-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">Buat Tugas Baru</button>
-                    </div>
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <table class="w-full text-left">
-                            <thead>
-                                <tr class="border-b">
-                                    <th class="p-3">Judul</th>
-                                    <th class="p-3">Kreator</th>
-                                    <th class="p-3">Status</th>
-                                    <th class="p-3">Deadline</th>
-                                    <th class="p-3">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tasks-table-body">
-                                </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                 <div id="view-analytics" class="view">
-                    <h1 class="text-3xl font-bold text-gray-800 mb-6">Analitik Performa</h1>
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <canvas id="performanceChart"></canvas>
-                    </div>
+    <!-- ===== APLIKASI UTAMA (Sembunyi by default) ===== -->
+    <div id="main-app" class="hidden">
+        <div class="flex h-screen bg-gray-100 dark:bg-gray-900">
+            
+            <!-- Sidebar -->
+            <nav id="sidebar" class="w-64 bg-white dark:bg-gray-800 shadow-lg flex flex-col transition-all duration-300 -translate-x-full md:translate-x-0">
+                <div class="p-4 flex items-center justify-between border-b dark:border-gray-700">
+                    <h1 class="text-2xl font-bold text-blue-600 dark:text-blue-400">ContentFlow</h1>
+                    <button id="toggle-dark-mode" class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <i data-lucide="moon" class="dark:hidden"></i>
+                        <i data-lucide="sun" class="hidden dark:inline"></i>
+                    </button>
                 </div>
                 
-                </main>
+                <!-- Menu Navigasi -->
+                <div class="flex-1 overflow-y-auto no-scrollbar">
+                    <ul class="py-4">
+                        <li class="px-4 mb-2">
+                            <span class_id="nav-link" class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Menu</span>
+                        </li>
+                        <li><a href="#dashboard" class="nav-link active-link flex items-center px-6 py-3 text-blue-600 bg-blue-50 dark:bg-gray-700 dark:text-blue-300">
+                            <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3"></i> Dashboard
+                        </a></li>
+                        <li><a href="#scripts" class="nav-link flex items-center px-6 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i data-lucide="file-text" class="w-5 h-5 mr-3"></i> Script Management
+                        </a></li>
+                        <li><a href="#production" class="nav-link flex items-center px-6 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i data-lucide="video" class="w-5 h-5 mr-3"></i> Content Production
+                        </a></li>
+                        <li><a href="#scheduling" class="nav-link flex items-center px-6 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i data-lucide="calendar-days" class="w-5 h-5 mr-3"></i> Scheduling
+                        </a></li>
+                        <li><a href="#analytics" class="nav-link flex items-center px-6 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i data-lucide="bar-chart-3" class="w-5 h-5 mr-3"></i> Analytics
+                        </a></li>
+                        
+                        <li class="px-4 mt-6 mb-2">
+                            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Admin</span>
+                        </li>
+                        <li><a href="#team" class="nav-link admin-only flex items-center px-6 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i data-lucide="users" class="w-5 h-5 mr-3"></i> Team Management
+                        </a></li>
+                        <li><a href="#logs" class="nav-link admin-only flex items-center px-6 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i data-lucide="clipboard-list" class="w-5 h-5 mr-3"></i> Activity Logs
+                        </a></li>
+                    </ul>
+                </div>
+                
+                <!-- User Profile & Logout -->
+                <div class="p-4 border-t dark:border-gray-700">
+                    <div class="flex items-center mb-3">
+                        <img id="user-avatar" src="https://placehold.co/40x40/E2E8F0/A0AEC0?text=U" class="w-10 h-10 rounded-full mr-3">
+                        <div>
+                            <p id="user-name" class="font-semibold text-sm">User Name</p>
+                            <p id="user-role" class="text-xs text-gray-500">User Role</p>
+                        </div>
+                    </div>
+                    <button id="signout-button" class="w-full flex items-center justify-center px-4 py-2 text-sm text-red-600 bg-red-100 dark:bg-red-900 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-800">
+                        <i data-lucide="log-out" class="w-4 h-4 mr-2"></i> Logout
+                    </button>
+                </div>
+            </nav>
+            
+            <!-- Mobile Sidebar Toggle -->
+            <button id="mobile-menu-button" class="md:hidden fixed top-4 left-4 z-50 p-2 bg-white dark:bg-gray-800 rounded-lg shadow">
+                <i data-lucide="menu"></i>
+            </button>
+
+            <!-- Main Content Area -->
+            <main class="flex-1 flex flex-col overflow-hidden">
+                <!-- Top Bar -->
+                <header class="bg-white dark:bg-gray-800 shadow-sm p-4 flex justify-between items-center">
+                    <h2 id="page-title" class="text-2xl font-semibold">Dashboard</h2>
+                    <div class="flex items-center space-x-4">
+                        <button class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 relative">
+                            <i data-lucide="bell"></i>
+                            <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                        </button>
+                        <button id="btn-add-new" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center">
+                            <i data-lucide="plus" class="w-5 h-5 mr-1"></i> Add New
+                        </button>
+                    </div>
+                </header>
+
+                <!-- Content Pages -->
+                <div class="flex-1 p-6 overflow-y-auto no-scrollbar">
+                    
+                    <!-- ===== PAGE: DASHBOARD ===== -->
+                    <div id="page-dashboard" class="page-content">
+                        <!-- Stats Cards -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg transform hover:scale-105 transition-transform duration-300">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Scripts in Review</p>
+                                        <p id="stat-review" class="text-3xl font-bold">0</p>
+                                    </div>
+                                    <div class="p-3 bg-blue-100 dark:bg-blue-900 rounded-full">
+                                        <i data-lucide="file-clock" class="w-6 h-6 text-blue-600 dark:text-blue-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg transform hover:scale-105 transition-transform duration-300">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Content Scheduled</p>
+                                        <p id="stat-scheduled" class="text-3xl font-bold">0</p>
+                                    </div>
+                                    <div class="p-3 bg-green-100 dark:bg-green-900 rounded-full">
+                                        <i data-lucide="calendar-check" class="w-6 h-6 text-green-600 dark:text-green-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg transform hover:scale-105 transition-transform duration-300">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Revisions Needed</p>
+                                        <p id="stat-revisions" class="text-3xl font-bold">0</p>
+                                    </div>
+                                    <div class="p-3 bg-yellow-100 dark:bg-yellow-900 rounded-full">
+                                        <i data-lucide="alert-circle" class="w-6 h-6 text-yellow-600 dark:text-yellow-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg transform hover:scale-105 transition-transform duration-300">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Views (30d)</p>
+                                        <p id="stat-views" class="text-3xl font-bold">0</p>
+                                    </div>
+                                    <div class="p-3 bg-purple-100 dark:bg-purple-900 rounded-full">
+                                        <i data-lucide="eye" class="w-6 h-6 text-purple-600 dark:text-purple-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Charts -->
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                            <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+                                <h3 class="text-xl font-semibold mb-4">Performance Overview (Last 30 Days)</h3>
+                                <canvas id="performanceChart"></canvas>
+                            </div>
+                            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+                                <h3 class="text-xl font-semibold mb-4">Content Status</h3>
+                                <canvas id="statusChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Quick Access / My Tasks -->
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+                            <h3 class="text-xl font-semibold mb-4">My Pending Tasks</h3>
+                            <div id="my-tasks-list" class="space-y-4">
+                                <!-- Tasks akan di-render di sini oleh JS -->
+                                <p class="text-gray-500">No pending tasks. Great job!</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- ===== PAGE: SCRIPT MANAGEMENT ===== -->
+                    <div id="page-scripts" class="page-content hidden">
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-xl font-semibold">Script Pipeline</h3>
+                                <div class="flex space-x-2">
+                                    <input type="text" id="script-search" placeholder="Search scripts..." class="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <select id="script-filter-status" class="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="">All Statuses</option>
+                                        <option value="Draft">Draft</option>
+                                        <option value="Review">In Review</option>
+                                        <option value="Approved">Approved</option>
+                                        <option value="Revision">Revision Needed</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="overflow-x-auto">
+                                <table class="w-full min-w-max text-left">
+                                    <thead class="border-b dark:border-gray-700">
+                                        <tr class="text-gray-500 uppercase text-sm">
+                                            <th class="py-3 px-4">Title</th>
+                                            <th class="py-3 px-4">Creator</th>
+                                            <th class="py-3 px-4">Status</th>
+                                            <th class="py-3 px-4">Link</th>
+                                            <th class="py-3 px-4">Last Update</th>
+                                            <th class="py-3 px-4">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="scripts-table-body">
+                                        <!-- Data scripts akan di-render di sini -->
+                                        <tr><td colspan="6" class="text-center py-8 text-gray-500">Loading scripts...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- ===== PAGE: PRODUCTION ===== -->
+                    <div id="page-production" class="page-content hidden">
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+                            <h3 class="text-xl font-semibold mb-4">Production Tracker</h3>
+                            <!-- Konten Production di sini -->
+                            <p class="text-gray-500">Production tracking module coming soon.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- ===== PAGE: SCHEDULING ===== -->
+                    <div id="page-scheduling" class="page-content hidden">
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+                            <h3 class="text-xl font-semibold mb-4">Content Calendar</h3>
+                            <!-- Konten Scheduling di sini -->
+                            <p class="text-gray-500">Scheduling module coming soon.</p>
+                        </div>
+                    </div>
+
+                    <!-- ===== PAGE: ANALYTICS ===== -->
+                    <div id="page-analytics" class="page-content hidden">
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+                            <h3 class="text-xl font-semibold mb-4">Detailed Analytics</h3>
+                            <!-- Konten Analytics di sini -->
+                            <p class="text-gray-500">Detailed analytics module coming soon.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- ===== PAGE: TEAM MANAGEMENT ===== -->
+                    <div id="page-team" class="page-content hidden admin-only">
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-xl font-semibold">Team Management</h3>
+                                <button id="btn-add-member" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center">
+                                    <i data-lucide="user-plus" class="w-5 h-5 mr-1"></i> Add Member
+                                </button>
+                            </div>
+                            
+                            <div class="overflow-x-auto">
+                                <table class="w-full min-w-max text-left">
+                                    <thead class="border-b dark:border-gray-700">
+                                        <tr class="text-gray-500 uppercase text-sm">
+                                            <th class="py-3 px-4">Name</th>
+                                            <th class="py-3 px-4">Email</th>
+                                            <th class="py-3 px-4">Role</th>
+                                            <th class="py-3 px-4">Joined</th>
+                                            <th class="py-3 px-4">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="team-table-body">
+                                        <!-- Data tim akan di-render di sini -->
+                                        <tr><td colspan="5" class="text-center py-8 text-gray-500">Loading team members...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ===== PAGE: ACTIVITY LOGS ===== -->
+                    <div id="page-logs" class="page-content hidden admin-only">
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+                            <h3 class="text-xl font-semibold mb-4">Activity Logs</h3>
+                            <!-- Konten Logs di sini -->
+                            <p class="text-gray-500">Activity logs module coming soon.</p>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
         </div>
     </div>
     
-    <div id="task-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center">
-        <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
-            <h2 class="text-2xl font-bold mb-6">Buat Tugas Baru</h2>
-            <form id="task-form">
-                <div class="mb-4">
-                    <label for="task-title" class="block text-gray-700">Judul Tugas</label>
-                    <input type="text" id="task-title" class="w-full p-2 border rounded-md" required>
-                </div>
-                <div class="mb-4">
-                    <label for="task-type" class="block text-gray-700">Tipe Konten</label>
-                    <select id="task-type" class="w-full p-2 border rounded-md">
-                        <option>Video</option>
-                        <option>Artikel</option>
-                        <option>Podcast</option>
-                    </select>
-                </div>
-                <div class="mb-6">
-                    <label for="task-deadline" class="block text-gray-700">Deadline</label>
-                    <input type="date" id="task-deadline" class="w-full p-2 border rounded-md" required>
-                </div>
-                <div class="flex justify-end space-x-4">
-                    <button type="button" id="cancel-task-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg">Batal</button>
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">Simpan</button>
-                </div>
-            </form>
-        </div>
+    <!-- Global Loading Spinner -->
+    <div id="global-loader" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+        <div class="w-16 h-16 border-4 border-t-blue-500 border-gray-200 rounded-full animate-spin"></div>
     </div>
 
-
     <script>
-        // --- CONFIGURATION ---
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwRS5X4PFVj3r3KWA9sI3xByNjJA9CgXuRpBoXn46JCvJRSPE54yIIjH1gW5Qfz6EQ/exec'; // Ganti dengan URL Web App Anda
-        let userProfile = null; // To store user's profile info
-
-        // --- API HELPER ---
-        async function api(action, payload = {}, method = 'GET') {
-            const url = new URL(SCRIPT_URL);
-            if (method === 'GET') {
-                url.searchParams.append('action', action);
-                for (const key in payload) {
-                    url.searchParams.append(key, payload[key]);
-                }
+        // GANTI DENGAN URL WEB APP APPS SCRIPT ANDA SETELAH DEPLOY
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxxvnm-PfVSaABT59Fo8WfANzwXVSa9gZoZIZ_c1f7XneGOEtZJe89YRrSYdiqSCek9/exec';
+        
+        // ===== GLOBAL STATE =====
+        let G_USER_PROFILE = null;
+        let G_USER_ROLE = null; // 'Admin', 'Creator', 'Editor'
+        let G_ID_TOKEN = null;
+        let G_CHARTS = {
+            performance: null,
+            status: null
+        };
+        
+        // ===== HELPER FUNCTIONS =====
+        
+        /**
+         * Menampilkan/menyembunyikan loader global
+         * @param {boolean} show - Tampilkan (true) atau sembunyikan (false)
+         */
+        function showLoader(show) {
+            const loader = document.getElementById('global-loader');
+            if (show) {
+                loader.classList.remove('hidden');
+            } else {
+                loader.classList.add('hidden');
             }
-            
-            const idToken = sessionStorage.getItem('id_token');
-            if (!idToken) {
-                console.error("User not authenticated.");
-                showAuthScreen();
-                return;
-            }
+        }
 
-            const headers = { 'Content-Type': 'application/json' };
-            const body = method === 'POST' ? JSON.stringify({ action, idToken, payload }) : null;
-            
+        /**
+         * Menampilkan notifikasi error menggunakan SweetAlert2
+         * @param {string} title - Judul error
+         * @param {string} text - Teks error
+         */
+        function showError(title, text) {
+            Swal.fire({
+                icon: 'error',
+                title: title,
+                text: text,
+                confirmButtonColor: '#3B82F6' // bg-blue-500
+            });
+        }
+        
+        /**
+         * Menampilkan notifikasi sukses menggunakan SweetAlert2
+         * @param {string} title - Judul sukses
+         */
+        function showSuccess(title) {
+            Swal.fire({
+                icon: 'success',
+                title: title,
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true
+            });
+        }
+
+        /**
+         * Fungsi utama untuk memanggil API Google Apps Script
+         * @param {string} action - Nama fungsi/aksi di backend
+         * @param {object} payload - Data yang dikirim
+         * @returns {Promise<object>} - Respon JSON dari backend
+         */
+        async function callAppsScript(action, payload = {}) {
+            showLoader(true);
             try {
-                const response = await fetch(url, {
-                    method: method,
-                    headers: headers,
-                    body: body,
-                    redirect: 'follow'
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    redirect: 'follow',
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8', // Apps Script Web App seringkali lebih mudah menerima text/plain
+                    },
+                    body: JSON.stringify({
+                        token: G_ID_TOKEN, // Selalu kirim token untuk verifikasi
+                        action: action,
+                        payload: payload
+                    })
                 });
 
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.status === 'success') {
-                        return result.data;
-                    } else {
-                        throw new Error(result.message || 'API error');
-                    }
-                } else {
+                if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
+
+                const result = await response.json();
+
+                if (result.status === 'error') {
+                    throw new Error(result.message);
+                }
+                
+                return result.data;
+
             } catch (error) {
-                console.error('API call failed:', error);
-                // Optionally show an error message to the user
-                return null;
+                console.error('Error calling Apps Script:', action, error);
+                showError('API Error', error.message || 'Failed to communicate with the server.');
+                // Jika error otentikasi, paksa logout
+                if (error.message.includes("Invalid token") || error.message.includes("User not authorized")) {
+                    signOut();
+                }
+                return null; // Mengembalikan null agar pemanggil bisa menangani
+            } finally {
+                showLoader(false);
             }
         }
 
-
-        // --- AUTHENTICATION ---
-        function handleCredentialResponse(response) {
-            sessionStorage.setItem('id_token', response.credential);
-            api('verifyUser', {}, 'POST')
-                .then(data => {
-                    if (data && data.user) {
-                        userProfile = data.user;
-                        sessionStorage.setItem('user_profile', JSON.stringify(userProfile));
-                        initializeApp();
+        // ===== GOOGLE AUTHENTICATION =====
+        
+        /**
+         * Callback saat Google API siap
+         */
+        function onLoadGoogleApi() {
+            gapi.load('auth2', function() {
+                gapi.auth2.init({
+                    client_id: document.querySelector('meta[name="google-signin-client_id"]').content
+                }).then(() => {
+                    // Cek jika sudah login sebelumnya
+                    const authInstance = gapi.auth2.getAuthInstance();
+                    if (authInstance.isSignedIn.get()) {
+                        onSignIn(authInstance.currentUser.get());
                     } else {
-                        alert('Authentication failed or user not found in the system.');
-                        showAuthScreen();
+                        // Animasikan login box jika belum login
+                        gsap.from("#login-box", { 
+                            duration: 0.7, 
+                            y: -50, 
+                            opacity: 0, 
+                            ease: "power2.out" 
+                        });
                     }
                 });
+            });
         }
 
-        function showAuthScreen() {
-            document.getElementById('auth-screen').style.display = 'flex';
-            document.getElementById('app-screen').style.display = 'none';
-            sessionStorage.clear();
-        }
+        /**
+         * Callback sukses login Google
+         * @param {object} googleUser - Objek user dari Google
+         */
+        async function onSignIn(googleUser) {
+            document.getElementById('auth-status').innerText = 'Verifying your account...';
+            
+            const profile = googleUser.getBasicProfile();
+            G_ID_TOKEN = googleUser.getAuthResponse().id_token;
 
-        function showAppScreen() {
-            document.getElementById('auth-screen').style.display = 'none';
-            document.getElementById('app-screen').style.display = 'block';
-        }
+            // Verifikasi token di backend dan dapatkan role user
+            const data = await callAppsScript('verifyUser', { email: profile.getEmail(), name: profile.getName() });
 
-        function logout() {
-            google.accounts.id.disableAutoSelect();
-            showAuthScreen();
-        }
-
-        // --- INITIALIZATION ---
-        function initializeApp() {
-            showAppScreen();
-            const user = JSON.parse(sessionStorage.getItem('user_profile'));
-            document.getElementById('user-name').textContent = user.name;
-            document.getElementById('user-email').textContent = user.email;
-            document.getElementById('user-avatar').src = user.picture;
-
-            setupEventListeners();
-            navigateTo('dashboard');
-        }
-
-        // --- UI & RENDERING ---
-        function renderTasks(tasks) {
-            const tableBody = document.getElementById('tasks-table-body');
-            tableBody.innerHTML = '';
-            if (!tasks || tasks.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="5" class="p-3 text-center text-gray-500">Tidak ada tugas ditemukan.</td></tr>';
-                return;
+            if (data && data.role) {
+                G_USER_PROFILE = profile;
+                G_USER_ROLE = data.role;
+                
+                // Tampilkan aplikasi
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('main-app').classList.remove('hidden');
+                
+                // Inisialisasi UI
+                await initializeAppUI();
+                
+            } else {
+                document.getElementById('auth-status').innerText = data ? data.message : 'Authentication failed. You are not registered.';
+                signOut(); // Paksa logout jika user tidak terdaftar
             }
-            tasks.forEach(task => {
-                const row = `
-                    <tr class="border-b hover:bg-gray-50">
-                        <td class="p-3 font-medium">${task.title}</td>
-                        <td class="p-3">${task.creatorEmail}</td>
-                        <td class="p-3">
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">${task.status}</span>
-                        </td>
-                        <td class="p-3">${new Date(task.deadline).toLocaleDateString()}</td>
-                        <td class="p-3">
-                            <button class="text-indigo-600 hover:underline">Detail</button>
-                        </td>
-                    </tr>
-                `;
-                tableBody.insertAdjacentHTML('beforeend', row);
+        }
+
+        /**
+         * Fungsi Logout
+         */
+        function signOut() {
+            const auth2 = gapi.auth2.getAuthInstance();
+            auth2.signOut().then(function () {
+                G_USER_PROFILE = null;
+                G_USER_ROLE = null;
+                G_ID_TOKEN = null;
+                
+                document.getElementById('main-app').classList.add('hidden');
+                document.getElementById('login-screen').classList.remove('hidden');
+                document.getElementById('auth-status').innerText = '';
             });
         }
 
-        function renderDashboard(data) {
-            document.getElementById('dashboard-active-tasks').textContent = data.stats.active || 0;
-            document.getElementById('dashboard-pending-approval').textContent = data.stats.pending || 0;
-            document.getElementById('dashboard-scheduled-posts').textContent = data.stats.scheduled || 0;
+        // ===== INITIALIZE APP UI =====
 
-            const activityLog = document.getElementById('dashboard-activity-log');
-            activityLog.innerHTML = '';
-            data.activity.forEach(log => {
-                const item = `
-                    <li class="flex items-center text-sm">
-                        <span class="font-semibold text-gray-800 mr-2">${log.userEmail}</span>
-                        <span class="text-gray-600">${log.action.replace(/_/g, ' ').toLowerCase()}</span>
-                        <span class="ml-auto text-gray-400">${new Date(log.timestamp).toLocaleString()}</span>
-                    </li>
-                `;
-                activityLog.insertAdjacentHTML('beforeend', item);
-            });
+        /**
+         * Mengatur UI utama setelah login
+         */
+        async function initializeAppUI() {
+            // Setup User Info
+            document.getElementById('user-avatar').src = G_USER_PROFILE.getImageUrl();
+            document.getElementById('user-name').innerText = G_USER_PROFILE.getName();
+            document.getElementById('user-role').innerText = G_USER_ROLE;
+            
+            // Setup Ikon Lucide
+            lucide.createIcons();
+
+            // Setup Role-Based Access
+            if (G_USER_ROLE !== 'Admin') {
+                document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
+            } else {
+                 document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
+            }
+
+            // Muat data untuk halaman default (Dashboard)
+            await loadPage('dashboard');
+            
+            // Animasikan sidebar dan header
+            gsap.from("#sidebar", { duration: 0.5, x: -256, ease: "power2.out" });
+            gsap.from("main header", { duration: 0.5, y: -100, opacity: 0, ease: "power2.out", delay: 0.2 });
         }
 
-        function renderAnalytics(performanceData) {
-            const ctx = document.getElementById('performanceChart').getContext('2d');
-            const labels = performanceData.map(p => p.taskId); // Simple label, could be task title
-            const viewsData = performanceData.map(p => p.views);
-            const likesData = performanceData.map(p => p.likes);
+        // ===== PAGE LOADING & ROUTING =====
 
-            new Chart(ctx, {
-                type: 'bar',
+        /**
+         * Menampilkan halaman yang diminta dan memuat datanya
+         * @param {string} pageId - ID halaman (e.g., 'dashboard', 'scripts')
+         */
+        async function loadPage(pageId) {
+            // Sembunyikan semua halaman
+            document.querySelectorAll('.page-content').forEach(page => page.classList.add('hidden'));
+            
+            // Tampilkan halaman yang diminta
+            const targetPage = document.getElementById(`page-${pageId}`);
+            if (targetPage) {
+                targetPage.classList.remove('hidden');
+                
+                // Animasikan konten halaman
+                gsap.from(targetPage, { duration: 0.4, opacity: 0, y: 20, ease: "power1.out" });
+
+                // Set judul halaman
+                const link = document.querySelector(`.nav-link[href="#${pageId}"]`);
+                document.getElementById('page-title').innerText = link.innerText;
+
+                // Set active link di sidebar
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active-link', 'text-blue-600', 'bg-blue-50', 'dark:bg-gray-700', 'dark:text-blue-300'));
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.add('text-gray-600', 'dark:text-gray-300'));
+                link.classList.add('active-link', 'text-blue-600', 'bg-blue-50', 'dark:bg-gray-700', 'dark:text-blue-300');
+                link.classList.remove('text-gray-600', 'dark:text-gray-300');
+                
+                // Muat data spesifik untuk halaman
+                switch(pageId) {
+                    case 'dashboard':
+                        await loadDashboardData();
+                        break;
+                    case 'scripts':
+                        await loadScriptsData();
+                        break;
+                    case 'team':
+                        await loadTeamData();
+                        break;
+                    // Tambahkan case lain untuk halaman lain
+                    case 'production':
+                    case 'scheduling':
+                    case 'analytics':
+                    case 'logs':
+                        // Fungsionalitas belum diimplementasikan
+                        break;
+                }
+            }
+        }
+        
+        // ===== PAGE-SPECIFIC DATA LOADERS =====
+
+        /**
+         * Memuat data untuk Dashboard
+         */
+        async function loadDashboardData() {
+            const data = await callAppsScript('getDashboardData');
+            if (!data) return;
+
+            // 1. Stats Cards
+            document.getElementById('stat-review').innerText = data.stats.review || 0;
+            document.getElementById('stat-scheduled').innerText = data.stats.scheduled || 0;
+            document.getElementById('stat-revisions').innerText = data.stats.revisions || 0;
+            document.getElementById('stat-views').innerText = new Intl.NumberFormat('id-ID').format(data.stats.views || 0);
+            
+            // Animasikan angka
+            gsap.from("#stat-review, #stat-scheduled, #stat-revisions, #stat-views", {
+                textContent: 0,
+                duration: 1,
+                ease: "power1.out",
+                snap: { textContent: 1 },
+                stagger: 0.1
+            });
+
+            // 2. My Tasks
+            const tasksList = document.getElementById('my-tasks-list');
+            tasksList.innerHTML = ''; // Kosongkan
+            if (data.myTasks && data.myTasks.length > 0) {
+                data.myTasks.forEach(task => {
+                    tasksList.innerHTML += `
+                        <div class="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <div>
+                                <p class="font-semibold">${task.title}</p>
+                                <p class="text-sm text-gray-500">${task.description}</p>
+                            </div>
+                            <a href="${task.link}" class="text-blue-500 hover:underline text-sm">View</a>
+                        </div>
+                    `;
+                });
+            } else {
+                tasksList.innerHTML = '<p class="text-gray-500">No pending tasks. Great job!</p>';
+            }
+
+            // 3. Status Chart (Doughnut)
+            const statusCtx = document.getElementById('statusChart').getContext('2d');
+            if (G_CHARTS.status) G_CHARTS.status.destroy();
+            G_CHARTS.status = new Chart(statusCtx, {
+                type: 'doughnut',
                 data: {
-                    labels: labels,
+                    labels: data.statusChart.labels,
+                    datasets: [{
+                        label: 'Content Status',
+                        data: data.statusChart.data,
+                        backgroundColor: [
+                            '#EAB308', // yellow-500 (Draft)
+                            '#3B82F6', // blue-500 (Review)
+                            '#22C55E', // green-500 (Approved)
+                            '#EF4444', // red-500 (Revision)
+                        ],
+                        borderColor: document.body.classList.contains('dark') ? '#1F2937' : '#FFFFFF',
+                        borderWidth: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: document.body.classList.contains('dark') ? '#E5E7EB' : '#374151'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // 4. Performance Chart (Line)
+            const perfCtx = document.getElementById('performanceChart').getContext('2d');
+            if (G_CHARTS.performance) G_CHARTS.performance.destroy();
+            const isDark = document.body.classList.contains('dark');
+            const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+            const labelColor = isDark ? '#E5E7EB' : '#374151';
+
+            G_CHARTS.performance = new Chart(perfCtx, {
+                type: 'line',
+                data: {
+                    labels: data.performanceChart.labels,
                     datasets: [
                         {
                             label: 'Views',
-                            data: viewsData,
-                            backgroundColor: 'rgba(79, 70, 229, 0.8)',
-                            borderColor: 'rgba(79, 70, 229, 1)',
-                            borderWidth: 1
+                            data: data.performanceChart.views,
+                            borderColor: '#3B82F6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            yAxisID: 'y'
                         },
                         {
                             label: 'Likes',
-                            data: likesData,
-                            backgroundColor: 'rgba(251, 146, 60, 0.8)',
-                            borderColor: 'rgba(251, 146, 60, 1)',
-                            borderWidth: 1
+                            data: data.performanceChart.likes,
+                            borderColor: '#22C55E',
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            yAxisID: 'y1'
                         }
                     ]
                 },
                 options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
                     scales: {
+                        x: {
+                            grid: { color: gridColor },
+                            ticks: { color: labelColor }
+                        },
                         y: {
-                            beginAtZero: true
+                            type: 'linear',
+                            position: 'left',
+                            title: { display: true, text: 'Views', color: labelColor },
+                            grid: { color: gridColor },
+                            ticks: { color: labelColor }
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            title: { display: true, text: 'Likes', color: labelColor },
+                            grid: { drawOnChartArea: false }, // Hanya tampilkan grid untuk y-axis utama
+                            ticks: { color: labelColor }
                         }
                     },
-                    responsive: true,
                     plugins: {
                         legend: {
                             position: 'top',
+                            labels: { color: labelColor }
                         },
-                        title: {
-                            display: true,
-                            text: 'Performa Konten'
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: { weight: 'bold' },
                         }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                }
+            });
+        }
+        
+        /**
+         * Memuat data untuk Script Management
+         */
+        async function loadScriptsData() {
+            const data = await callAppsScript('getScripts');
+            const tableBody = document.getElementById('scripts-table-body');
+            tableBody.innerHTML = '';
+            
+            if (data && data.length > 0) {
+                data.forEach(script => {
+                    const statusColor = {
+                        'Draft': 'bg-gray-100 text-gray-600',
+                        'Review': 'bg-blue-100 text-blue-600',
+                        'Approved': 'bg-green-100 text-green-600',
+                        'Revision': 'bg-yellow-100 text-yellow-600'
+                    }[script.status] || 'bg-gray-100 text-gray-600';
+                    
+                    const canEdit = (G_USER_ROLE === 'Admin' || G_USER_ROLE === 'Editor');
+                    const canChangeStatus = (G_USER_ROLE === 'Admin' || G_USER_ROLE === 'Editor');
+                    
+                    tableBody.innerHTML += `
+                        <tr class="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td class="py-3 px-4 font-medium">${script.title}</td>
+                            <td class="py-3 px-4 text-gray-600 dark:text-gray-300">${script.creator_name}</td>
+                            <td class="py-3 px-4">
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold ${statusColor}">${script.status}</span>
+                            </td>
+                            <td class="py-3 px-4">
+                                <a href="${script.link}" target="_blank" class="text-blue-500 hover:underline">View Script</a>
+                            </td>
+                            <td class="py-3 px-4 text-gray-500 text-sm">${new Date(script.last_update).toLocaleString('id-ID')}</td>
+                            <td class="py-3 px-4 space-x-2">
+                                ${canChangeStatus ? `<button class="p-1 text-blue-500 hover:text-blue-700" onclick="changeScriptStatus('${script.script_id}', '${script.status}')"><i data-lucide="check-circle"></i></button>` : ''}
+                                ${canEdit ? `<button class="p-1 text-yellow-500 hover:text-yellow-700" onclick="editScript('${script.script_id}')"><i data-lucide="edit-2"></i></button>` : ''}
+                                ${canEdit ? `<button class="p-1 text-red-500 hover:text-red-700" onclick="deleteScript('${script.script_id}')"><i data-lucide="trash-2"></i></button>` : ''}
+                            </td>
+                        </tr>
+                    `;
+                });
+            } else {
+                tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-500">No scripts found.</td></tr>';
+            }
+            lucide.createIcons();
+        }
+        
+        /**
+         * Memuat data untuk Team Management
+         */
+        async function loadTeamData() {
+            const data = await callAppsScript('getUsers');
+            const tableBody = document.getElementById('team-table-body');
+            tableBody.innerHTML = '';
+            
+            if (data && data.length > 0) {
+                data.forEach(user => {
+                    tableBody.innerHTML += `
+                        <tr class="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td class="py-3 px-4 font-medium">${user.name}</td>
+                            <td class="py-3 px-4 text-gray-600 dark:text-gray-300">${user.email}</td>
+                            <td class="py-3 px-4 font-semibold">${user.role}</td>
+                            <td class="py-3 px-4 text-gray-500 text-sm">${new Date(user.joined_date).toLocaleDateString('id-ID')}</td>
+                            <td class="py-3 px-4 space-x-2">
+                                <button class="p-1 text-yellow-500 hover:text-yellow-700" onclick="editUser('${user.email}', '${user.name}', '${user.role}')"><i data-lucide="edit-2"></i></button>
+                                <button class="p-1 text-red-500 hover:text-red-700" onclick="deleteUser('${user.email}')"><i data-lucide="trash-2"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } else {
+                tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-500">No team members found.</td></tr>';
+            }
+            lucide.createIcons();
+        }
+
+        // ===== CRUD & ACTIONS =====
+        
+        /**
+         * Menampilkan modal untuk menambah script baru
+         */
+        async function showAddScriptModal() {
+            const { value: formValues } = await Swal.fire({
+                title: 'Submit New Script',
+                html: `
+                    <input id="swal-title" class="swal2-input" placeholder="Script Title">
+                    <input id="swal-link" class="swal2-input" placeholder="Google Doc Link">
+                    <textarea id="swal-notes" class="swal2-textarea" placeholder="Brief notes for the reviewer..."></textarea>
+                `,
+                focusConfirm: false,
+                preConfirm: () => {
+                    return {
+                        title: document.getElementById('swal-title').value,
+                        link: document.getElementById('swal-link').value,
+                        notes: document.getElementById('swal-notes').value
+                    }
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Submit for Review',
+                confirmButtonColor: '#3B82F6',
+                cancelButtonColor: '#6B7280'
+            });
+
+            if (formValues) {
+                if (!formValues.title || !formValues.link) {
+                    showError('Validation Error', 'Title and Link are required.');
+                    return;
+                }
+                const result = await callAppsScript('addScript', formValues);
+                if (result) {
+                    showSuccess('Script Submitted!');
+                    await loadScriptsData(); // Refresh data
+                    await loadDashboardData(); // Refresh stats
+                }
+            }
+        }
+        
+        /**
+         * Mengubah status script
+         */
+        async function changeScriptStatus(scriptId, currentStatus) {
+            const { value: newStatus } = await Swal.fire({
+                title: 'Change Script Status',
+                input: 'select',
+                inputOptions: {
+                    'Draft': 'Draft',
+                    'Review': 'In Review',
+                    'Approved': 'Approved',
+                    'Revision': 'Revision Needed'
+                },
+                inputValue: currentStatus,
+                showCancelButton: true,
+                confirmButtonColor: '#3B82F6',
+                cancelButtonColor: '#6B7280'
+            });
+
+            if (newStatus && newStatus !== currentStatus) {
+                const result = await callAppsScript('updateScriptStatus', { script_id: scriptId, status: newStatus });
+                if (result) {
+                    showSuccess('Status Updated!');
+                    await loadScriptsData(); // Refresh data
+                    await loadDashboardData(); // Refresh stats
+                }
+            }
+        }
+
+        /**
+         * Menampilkan modal untuk menambah anggota tim baru
+         */
+        async function showAddTeamMemberModal() {
+            const { value: formValues } = await Swal.fire({
+                title: 'Add New Team Member',
+                html: `
+                    <input id="swal-email" class="swal2-input" placeholder="User Email">
+                    <input id="swal-name" class="swal2-input" placeholder="User Name">
+                    <select id="swal-role" class="swal2-select">
+                        <option value="Creator">Creator</option>
+                        <option value="Editor">Editor</option>
+                        <option value="Admin">Admin</option>
+                    </select>
+                `,
+                focusConfirm: false,
+                preConfirm: () => {
+                    return {
+                        email: document.getElementById('swal-email').value,
+                        name: document.getElementById('swal-name').value,
+                        role: document.getElementById('swal-role').value
+                    }
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Add Member',
+                confirmButtonColor: '#16A34A', // bg-green-600
+                cancelButtonColor: '#6B7280'
+            });
+
+            if (formValues) {
+                if (!formValues.email || !formValues.name) {
+                    showError('Validation Error', 'Email and Name are required.');
+                    return;
+                }
+                const result = await callAppsScript('addUser', formValues);
+                if (result) {
+                    showSuccess('Member Added!');
+                    await loadTeamData(); // Refresh data
+                }
+            }
+        }
+
+        /**
+         * Mengedit user
+         */
+        async function editUser(email, name, role) {
+             const { value: formValues } = await Swal.fire({
+                title: 'Edit Team Member',
+                html: `
+                    <input id="swal-email" class="swal2-input" value="${email}" readonly>
+                    <input id="swal-name" class="swal2-input" value="${name}">
+                    <select id="swal-role" class="swal2-select">
+                        <option value="Creator" ${role === 'Creator' ? 'selected' : ''}>Creator</option>
+                        <option value="Editor" ${role === 'Editor' ? 'selected' : ''}>Editor</option>
+                        <option value="Admin" ${role === 'Admin' ? 'selected' : ''}>Admin</option>
+                    </select>
+                `,
+                focusConfirm: false,
+                preConfirm: () => {
+                    return {
+                        email: document.getElementById('swal-email').value,
+                        name: document.getElementById('swal-name').value,
+                        role: document.getElementById('swal-role').value
+                    }
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Update Member',
+                confirmButtonColor: '#EAB308', // bg-yellow-500
+                cancelButtonColor: '#6B7280'
+            });
+
+            if (formValues) {
+                const result = await callAppsScript('updateUser', formValues);
+                if (result) {
+                    showSuccess('Member Updated!');
+                    await loadTeamData(); // Refresh data
+                }
+            }
+        }
+
+        /**
+         * Menghapus user
+         */
+        async function deleteUser(email) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: `This will remove ${email} from the team. This action cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#EF4444', // bg-red-500
+                cancelButtonColor: '#6B7280',
+                confirmButtonText: 'Yes, delete it!'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    const res = await callAppsScript('deleteUser', { email: email });
+                    if (res) {
+                        showSuccess('User Deleted!');
+                        await loadTeamData(); // Refresh data
                     }
                 }
             });
         }
 
-
-        // --- NAVIGATION & PAGE LOADING ---
-        function navigateTo(viewName) {
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.getElementById(`view-${viewName}`).classList.add('active');
-
-            document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
-            document.querySelector(`.sidebar-link[data-view="${viewName}"]`).classList.add('active');
-
-            loadViewData(viewName);
-        }
-
-        function loadViewData(viewName) {
-            switch (viewName) {
-                case 'dashboard':
-                    api('getDashboardData').then(renderDashboard);
-                    break;
-                case 'tasks':
-                    api('getTasks').then(renderTasks);
-                    break;
-                case 'analytics':
-                    api('getPerformanceData').then(renderAnalytics);
-                    break;
-            }
-        }
-
-
-        // --- EVENT LISTENERS ---
-        function setupEventListeners() {
-            // Sidebar navigation
-            document.querySelectorAll('.sidebar-link').forEach(link => {
+        // ===== EVENT LISTENERS =====
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // Panggil Google Auth loader
+            onLoadGoogleApi();
+            
+            // Navigasi SPA
+            document.querySelectorAll('.nav-link').forEach(link => {
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
-                    navigateTo(e.target.dataset.view);
+                    const pageId = e.currentTarget.getAttribute('href').substring(1);
+                    loadPage(pageId);
+                    
+                    // Tutup sidebar di mobile
+                    document.getElementById('sidebar').classList.add('-translate-x-full');
                 });
             });
 
-            // Logout
-            document.getElementById('logout-btn').addEventListener('click', logout);
-            
-            // Task modal
-            const taskModal = document.getElementById('task-modal');
-            document.getElementById('add-task-btn').addEventListener('click', () => taskModal.style.display = 'flex');
-            document.getElementById('cancel-task-btn').addEventListener('click', () => taskModal.style.display = 'none');
-            
-            // Task form submission
-            document.getElementById('task-form').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const task = {
-                    title: document.getElementById('task-title').value,
-                    type: document.getElementById('task-type').value,
-                    deadline: document.getElementById('task-deadline').value
-                };
+            // Tombol Logout
+            document.getElementById('signout-button').addEventListener('click', signOut);
 
-                api('createTask', task, 'POST').then(result => {
-                    if(result) {
-                        alert('Tugas berhasil dibuat!');
-                        taskModal.style.display = 'none';
-                        document.getElementById('task-form').reset();
-                        navigateTo('tasks'); // Refresh the task list
-                    }
-                });
+            // Tombol Dark Mode
+            document.getElementById('toggle-dark-mode').addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark');
+                // Re-render chart dengan warna yang benar
+                loadPage('dashboard');
             });
-        }
+            
+            // Tombol "Add New"
+            document.getElementById('btn-add-new').addEventListener('click', () => {
+                const currentPage = document.querySelector('.page-content:not(.hidden)').id;
+                if (currentPage === 'page-scripts') {
+                    showAddScriptModal();
+                } else if (currentPage === 'page-team') {
+                    showAddTeamMemberModal();
+                }
+                // Tambahkan logic untuk halaman lain
+            });
+            
+            // Tombol Add Member di halaman Team
+            document.getElementById('btn-add-member').addEventListener('click', showAddTeamMemberModal);
 
+            // Tombol Mobile Menu
+            document.getElementById('mobile-menu-button').addEventListener('click', () => {
+                document.getElementById('sidebar').classList.toggle('-translate-x-full');
+            });
+            
+        });
 
-        // --- ON-LOAD ---
-        window.onload = function() {
-            const token = sessionStorage.getItem('id_token');
-            if (token) {
-                initializeApp();
-            } else {
-                showAuthScreen();
-            }
-        };
     </script>
 </body>
 </html>
-
