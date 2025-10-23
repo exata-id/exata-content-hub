@@ -1,427 +1,483 @@
 <!DOCTYPE html>
-<html lang="id" class="scroll-smooth">
+<html lang="in">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- GANTI DENGAN CLIENT ID ANDA DARI GOOGLE CLOUD CONSOLE -->
-    <meta name="google-signin-client_id" content="347511642599-d556suv6pt1li48ppgc7fd04bevgt5tg.apps.googleusercontent.com">
-    <title>Content Workflow Dashboard</title>
-    
-    <!-- 1. Tailwind CSS -->
+    <title>Content Workflow Management</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- 2. Chart.js (Grafik) -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- 3. SweetAlert2 (Notifikasi & Modal) -->
+    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
-    <!-- 4. GSAP (Animasi) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.5/gsap.min.js"></script>
-    
-    <!-- 5. Google Platform Library (Otentikasi) -->
-    <script src="https://apis.google.com/js/platform.js" async defer></script>
-    
-    <!-- 6. Ikon (Lucide) -->
-    <script src="https://unpkg.com/lucide-react@latest/dist/umd/lucide.min.js"></script>
-
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- GSAP (Animasi) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <!-- Font Awesome (Ikon) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Font Kustom */
+        /* Font kustom */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
         }
-        /* Sembunyikan scrollbar untuk chrome, safari, opera */
-        .no-scrollbar::-webkit-scrollbar {
+        /* Menyembunyikan scrollbar untuk main content sambil tetap bisa scroll */
+        .main-content::-webkit-scrollbar {
             display: none;
         }
-        /* Sembunyikan scrollbar untuk IE, Edge, Firefox */
-        .no-scrollbar {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
+        .main-content {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
-        /* Styling untuk chart.js tooltip */
-        .chartjs-tooltip {
-            opacity: 1;
-            position: absolute;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            border-radius: 3px;
-            -webkit-transition: all .1s ease;
-            transition: all .1s ease;
-            pointer-events: none;
-            -webkit-transform: translate(-50%, 0);
-            transform: translate(-50%, 0);
-            padding: 4px 8px;
-            font-size: 12px;
+        /* Kelas untuk halaman aktif/non-aktif */
+        .page-content {
+            display: none; /* Sembunyi secara default */
+        }
+        .page-content.active {
+            display: block; /* Tampil saat aktif */
+        }
+        /* Loading overlay */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.3s;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #09f;
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+<body class="antialiased">
 
-    <!-- ===== HALAMAN LOGIN ===== -->
-    <div id="login-screen" class="flex items-center justify-center min-h-screen">
-        <div class="text-center p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full" id="login-box">
-            <h1 class="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">ContentFlow</h1>
-            <p class="text-gray-600 dark:text-gray-300 mb-6">Manajemen Workflow Tim Kreator</p>
-            <p class="text-sm text-gray-500 mb-4">Silakan login dengan akun Google Anda untuk melanjutkan.</p>
-            <!-- Tombol Google Sign-In -->
-            <div id="google-signin-button" class="g-signin2" data-onsuccess="onSignIn" data-theme="dark" data-width="240" data-height="50" data-longtitle="true" style="display: inline-block;"></div>
-            <p id="auth-status" class="text-sm text-red-500 mt-4"></p>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Halaman Login -->
+    <div id="page-login" class="flex items-center justify-center min-h-screen bg-gray-100">
+        <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
+            <h2 class="text-2xl font-bold text-center text-gray-900">Content Workflow Login</h2>
+            <form id="login-form" class="space-y-6">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                    <input id="email" name="email" type="email" autocomplete="email" required
+                        class="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <button type="submit"
+                    class="w-full px-4 py-2 font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150">
+                    Kirim Kode Login
+                </button>
+            </form>
         </div>
     </div>
 
-    <!-- ===== APLIKASI UTAMA (Sembunyi by default) ===== -->
-    <div id="main-app" class="hidden">
-        <div class="flex h-screen bg-gray-100 dark:bg-gray-900">
-            
+    <!-- Wrapper Aplikasi Utama (Sidebar + Konten) -->
+    <div id="app-wrapper" class="hidden">
+        <div class="flex h-screen bg-gray-100">
             <!-- Sidebar -->
-            <nav id="sidebar" class="w-64 bg-white dark:bg-gray-800 shadow-lg flex flex-col transition-all duration-300 -translate-x-full md:translate-x-0">
-                <div class="p-4 flex items-center justify-between border-b dark:border-gray-700">
-                    <h1 class="text-2xl font-bold text-blue-600 dark:text-blue-400">ContentFlow</h1>
-                    <button id="toggle-dark-mode" class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700">
-                        <i data-lucide="moon" class="dark:hidden"></i>
-                        <i data-lucide="sun" class="hidden dark:inline"></i>
-                    </button>
-                </div>
-                
-                <!-- Menu Navigasi -->
-                <div class="flex-1 overflow-y-auto no-scrollbar">
-                    <ul class="py-4">
-                        <li class="px-4 mb-2">
-                            <span class_id="nav-link" class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Menu</span>
-                        </li>
-                        <li><a href="#dashboard" class="nav-link active-link flex items-center px-6 py-3 text-blue-600 bg-blue-50 dark:bg-gray-700 dark:text-blue-300">
-                            <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3"></i> Dashboard
-                        </a></li>
-                        <li><a href="#scripts" class="nav-link flex items-center px-6 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i data-lucide="file-text" class="w-5 h-5 mr-3"></i> Script Management
-                        </a></li>
-                        <li><a href="#production" class="nav-link flex items-center px-6 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i data-lucide="video" class="w-5 h-5 mr-3"></i> Content Production
-                        </a></li>
-                        <li><a href="#scheduling" class="nav-link flex items-center px-6 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i data-lucide="calendar-days" class="w-5 h-5 mr-3"></i> Scheduling
-                        </a></li>
-                        <li><a href="#analytics" class="nav-link flex items-center px-6 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i data-lucide="bar-chart-3" class="w-5 h-5 mr-3"></i> Analytics
-                        </a></li>
-                        
-                        <li class="px-4 mt-6 mb-2">
-                            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Admin</span>
-                        </li>
-                        <li><a href="#team" class="nav-link admin-only flex items-center px-6 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i data-lucide="users" class="w-5 h-5 mr-3"></i> Team Management
-                        </a></li>
-                        <li><a href="#logs" class="nav-link admin-only flex items-center px-6 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i data-lucide="clipboard-list" class="w-5 h-5 mr-3"></i> Activity Logs
-                        </a></li>
-                    </ul>
-                </div>
-                
-                <!-- User Profile & Logout -->
-                <div class="p-4 border-t dark:border-gray-700">
-                    <div class="flex items-center mb-3">
-                        <img id="user-avatar" src="https://placehold.co/40x40/E2E8F0/A0AEC0?text=U" class="w-10 h-10 rounded-full mr-3">
-                        <div>
-                            <p id="user-name" class="font-semibold text-sm">User Name</p>
-                            <p id="user-role" class="text-xs text-gray-500">User Role</p>
-                        </div>
+            <aside class="w-64 flex-shrink-0 bg-white border-r border-gray-200">
+                <div class="flex flex-col h-full">
+                    <!-- Sidebar Header -->
+                    <div class="flex items-center justify-center h-16 border-b border-gray-200">
+                        <span class="text-xl font-semibold text-blue-600">WorkflowApp</span>
                     </div>
-                    <button id="signout-button" class="w-full flex items-center justify-center px-4 py-2 text-sm text-red-600 bg-red-100 dark:bg-red-900 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-800">
-                        <i data-lucide="log-out" class="w-4 h-4 mr-2"></i> Logout
-                    </button>
-                </div>
-            </nav>
-            
-            <!-- Mobile Sidebar Toggle -->
-            <button id="mobile-menu-button" class="md:hidden fixed top-4 left-4 z-50 p-2 bg-white dark:bg-gray-800 rounded-lg shadow">
-                <i data-lucide="menu"></i>
-            </button>
-
-            <!-- Main Content Area -->
-            <main class="flex-1 flex flex-col overflow-hidden">
-                <!-- Top Bar -->
-                <header class="bg-white dark:bg-gray-800 shadow-sm p-4 flex justify-between items-center">
-                    <h2 id="page-title" class="text-2xl font-semibold">Dashboard</h2>
-                    <div class="flex items-center space-x-4">
-                        <button class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 relative">
-                            <i data-lucide="bell"></i>
-                            <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                    <!-- Navigasi -->
+                    <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+                        <a href="#dashboard" data-page="page-dashboard" class="nav-link flex items-center px-4 py-2 text-gray-700 bg-gray-200 rounded-md">
+                            <i class="w-5 h-5 mr-3 fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                        <a href="#scripts" data-page="page-scripts" class="nav-link flex items-center px-4 py-2 text-gray-700 rounded-md hover:bg-gray-100">
+                            <i class="w-5 h-5 mr-3 fas fa-file-alt"></i> Script Management
+                        </a>
+                        <a href="#production" data-page="page-production" class="nav-link flex items-center px-4 py-2 text-gray-700 rounded-md hover:bg-gray-100">
+                            <i class="w-5 h-5 mr-3 fas fa-video"></i> Content Production
+                        </a>
+                        <a href="#scheduling" data-page="page-scheduling" class="nav-link flex items-center px-4 py-2 text-gray-700 rounded-md hover:bg-gray-100">
+                            <i class="w-5 h-5 mr-3 fas fa-calendar-alt"></i> Scheduling
+                        </a>
+                        <a href="#engagement" data-page="page-engagement" class="nav-link flex items-center px-4 py-2 text-gray-700 rounded-md hover:bg-gray-100">
+                            <i class="w-5 h-5 mr-3 fas fa-chart-line"></i> Engagement
+                        </a>
+                        <a href="#analytics" data-page="page-analytics" class="nav-link flex items-center px-4 py-2 text-gray-700 rounded-md hover:bg-gray-100">
+                            <i class="w-5 h-5 mr-3 fas fa-chart-pie"></i> Analytics
+                        </a>
+                        <a href="#team" data-page="page-team" class="nav-link flex items-center px-4 py-2 text-gray-700 rounded-md hover:bg-gray-100 admin-only">
+                            <i class="w-5 h-5 mr-3 fas fa-users"></i> Team Management
+                        </a>
+                    </nav>
+                    <!-- Sidebar Footer (User) -->
+                    <div class="p-4 border-t border-gray-200">
+                        <div class="flex items-center">
+                            <img class="w-10 h-10 rounded-full" src="https://placehold.co/40x40/E2E8F0/A0AEC0?text=U" alt="User Avatar">
+                            <div class="ml-3">
+                                <p id="user-name" class="text-sm font-medium text-gray-900">Loading...</p>
+                                <p id="user-role" class="text-xs text-gray-500">Loading...</p>
+                            </div>
+                        </div>
+                        <button id="logout-button" class="w-full px-4 py-2 mt-4 text-sm font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200">
+                            Logout
                         </button>
-                        <button id="btn-add-new" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center">
-                            <i data-lucide="plus" class="w-5 h-5 mr-1"></i> Add New
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Konten Utama -->
+            <main class="flex-1 overflow-y-auto main-content">
+                <!-- Header Konten -->
+                <header class="flex items-center justify-between h-16 px-6 bg-white border-b border-gray-200 sticky top-0 z-10">
+                    <h1 id="page-title" class="text-xl font-semibold text-gray-900">Dashboard</h1>
+                    <div class="flex items-center space-x-4">
+                        <button class="p-2 text-gray-500 rounded-full hover:bg-gray-100 hover:text-gray-700">
+                            <i class="fas fa-bell"></i>
+                            <!-- Notifikasi (akan diisi oleh JS) -->
+                        </button>
+                        <button id="btn-add-new" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                            <i class="fas fa-plus mr-1"></i> Tambah Baru
                         </button>
                     </div>
                 </header>
 
-                <!-- Content Pages -->
-                <div class="flex-1 p-6 overflow-y-auto no-scrollbar">
-                    
-                    <!-- ===== PAGE: DASHBOARD ===== -->
-                    <div id="page-dashboard" class="page-content">
-                        <!-- Stats Cards -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg transform hover:scale-105 transition-transform duration-300">
+                <!-- Container untuk semua halaman -->
+                <div class="p-6">
+                    <!-- Halaman Dashboard -->
+                    <section id="page-dashboard" class="page-content active">
+                        <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+                            <!-- Stat Card 1 -->
+                            <div class="p-6 bg-white rounded-lg shadow-md">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Scripts in Review</p>
-                                        <p id="stat-review" class="text-3xl font-bold">0</p>
+                                        <p class="text-sm font-medium text-gray-500">Script Draf</p>
+                                        <p id="stat-draft" class="text-3xl font-bold text-gray-900">0</p>
                                     </div>
-                                    <div class="p-3 bg-blue-100 dark:bg-blue-900 rounded-full">
-                                        <i data-lucide="file-clock" class="w-6 h-6 text-blue-600 dark:text-blue-300"></i>
+                                    <div class="p-3 bg-blue-100 rounded-full text-blue-500">
+                                        <i class="fas fa-file-alt"></i>
                                     </div>
                                 </div>
                             </div>
-                            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg transform hover:scale-105 transition-transform duration-300">
+                            <!-- Stat Card 2 -->
+                            <div class="p-6 bg-white rounded-lg shadow-md">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Content Scheduled</p>
-                                        <p id="stat-scheduled" class="text-3xl font-bold">0</p>
+                                        <p class="text-sm font-medium text-gray-500">Perlu Direvisi</p>
+                                        <p id="stat-revision" class="text-3xl font-bold text-gray-900">0</p>
                                     </div>
-                                    <div class="p-3 bg-green-100 dark:bg-green-900 rounded-full">
-                                        <i data-lucide="calendar-check" class="w-6 h-6 text-green-600 dark:text-green-300"></i>
+                                    <div class="p-3 bg-yellow-100 rounded-full text-yellow-500">
+                                        <i class="fas fa-exclamation-triangle"></i>
                                     </div>
                                 </div>
                             </div>
-                            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg transform hover:scale-105 transition-transform duration-300">
+                            <!-- Stat Card 3 -->
+                            <div class="p-6 bg-white rounded-lg shadow-md">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Revisions Needed</p>
-                                        <p id="stat-revisions" class="text-3xl font-bold">0</p>
+                                        <p class="text-sm font-medium text-gray-500">Siap Produksi</p>
+                                        <p id="stat-approved" class="text-3xl font-bold text-gray-900">0</p>
                                     </div>
-                                    <div class="p-3 bg-yellow-100 dark:bg-yellow-900 rounded-full">
-                                        <i data-lucide="alert-circle" class="w-6 h-6 text-yellow-600 dark:text-yellow-300"></i>
+                                    <div class="p-3 bg-green-100 rounded-full text-green-500">
+                                        <i class="fas fa-check-circle"></i>
                                     </div>
                                 </div>
                             </div>
-                            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg transform hover:scale-105 transition-transform duration-300">
+                            <!-- Stat Card 4 -->
+                            <div class="p-6 bg-white rounded-lg shadow-md">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Views (30d)</p>
-                                        <p id="stat-views" class="text-3xl font-bold">0</p>
+                                        <p class="text-sm font-medium text-gray-500">Total Tayang (Bulan Ini)</p>
+                                        <p id="stat-views" class="text-3xl font-bold text-gray-900">0</p>
                                     </div>
-                                    <div class="p-3 bg-purple-100 dark:bg-purple-900 rounded-full">
-                                        <i data-lucide="eye" class="w-6 h-6 text-purple-600 dark:text-purple-300"></i>
+                                    <div class="p-3 bg-indigo-100 rounded-full text-indigo-500">
+                                        <i class="fas fa-eye"></i>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Charts -->
-                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                            <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
-                                <h3 class="text-xl font-semibold mb-4">Performance Overview (Last 30 Days)</h3>
-                                <canvas id="performanceChart"></canvas>
+                        <!-- Aktivitas Terbaru & Task Saya -->
+                        <div class="grid grid-cols-1 gap-6 mt-6 lg:grid-cols-3">
+                            <div class="lg:col-span-2 p-6 bg-white rounded-lg shadow-md">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Aktivitas Tim Terbaru</h3>
+                                <div id="activity-log" class="space-y-4 max-h-96 overflow-y-auto">
+                                    <!-- Log diisi oleh JS -->
+                                    <p class="text-gray-500">Memuat aktivitas...</p>
+                                </div>
                             </div>
-                            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
-                                <h3 class="text-xl font-semibold mb-4">Content Status</h3>
-                                <canvas id="statusChart"></canvas>
-                            </div>
-                        </div>
-                        
-                        <!-- Quick Access / My Tasks -->
-                        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
-                            <h3 class="text-xl font-semibold mb-4">My Pending Tasks</h3>
-                            <div id="my-tasks-list" class="space-y-4">
-                                <!-- Tasks akan di-render di sini oleh JS -->
-                                <p class="text-gray-500">No pending tasks. Great job!</p>
+                            <div class="p-6 bg-white rounded-lg shadow-md">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Task Saya</h3>
+                                <div id="my-tasks" class="space-y-3">
+                                    <!-- Task diisi oleh JS -->
+                                    <p class="text-gray-500">Memuat task...</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <!-- ===== PAGE: SCRIPT MANAGEMENT ===== -->
-                    <div id="page-scripts" class="page-content hidden">
-                        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-xl font-semibold">Script Pipeline</h3>
-                                <div class="flex space-x-2">
-                                    <input type="text" id="script-search" placeholder="Search scripts..." class="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    <select id="script-filter-status" class="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                        <option value="">All Statuses</option>
+                    </section>
+
+                    <!-- Halaman Script Management -->
+                    <section id="page-scripts" class="page-content">
+                        <div class="bg-white rounded-lg shadow-md">
+                            <div class="p-4 border-b">
+                                <h3 class="text-lg font-semibold">Semua Script</h3>
+                            </div>
+                            <div class="p-4">
+                                <div class="flex justify-between mb-4">
+                                    <input type="text" id="search-scripts" placeholder="Cari script..." class="px-3 py-2 border rounded-md">
+                                    <select id="filter-scripts-status" class="px-3 py-2 border rounded-md">
+                                        <option value="">Semua Status</option>
                                         <option value="Draft">Draft</option>
-                                        <option value="Review">In Review</option>
+                                        <option value="Review">Review</option>
+                                        <option value="Revision Needed">Revision Needed</option>
                                         <option value="Approved">Approved</option>
-                                        <option value="Revision">Revision Needed</option>
                                     </select>
                                 </div>
-                            </div>
-                            
-                            <div class="overflow-x-auto">
-                                <table class="w-full min-w-max text-left">
-                                    <thead class="border-b dark:border-gray-700">
-                                        <tr class="text-gray-500 uppercase text-sm">
-                                            <th class="py-3 px-4">Title</th>
-                                            <th class="py-3 px-4">Creator</th>
-                                            <th class="py-3 px-4">Status</th>
-                                            <th class="py-3 px-4">Link</th>
-                                            <th class="py-3 px-4">Last Update</th>
-                                            <th class="py-3 px-4">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="scripts-table-body">
-                                        <!-- Data scripts akan di-render di sini -->
-                                        <tr><td colspan="6" class="text-center py-8 text-gray-500">Loading scripts...</td></tr>
-                                    </tbody>
-                                </table>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Judul</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Creator</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tgl Update</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="scripts-table-body" class="bg-white divide-y divide-gray-200">
+                                            <!-- Data diisi oleh JS -->
+                                            <tr><td colspan="5" class="p-4 text-center text-gray-500">Memuat data...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <!-- ===== PAGE: PRODUCTION ===== -->
-                    <div id="page-production" class="page-content hidden">
-                        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
-                            <h3 class="text-xl font-semibold mb-4">Production Tracker</h3>
-                            <!-- Konten Production di sini -->
-                            <p class="text-gray-500">Production tracking module coming soon.</p>
-                        </div>
-                    </div>
-                    
-                    <!-- ===== PAGE: SCHEDULING ===== -->
-                    <div id="page-scheduling" class="page-content hidden">
-                        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
-                            <h3 class="text-xl font-semibold mb-4">Content Calendar</h3>
-                            <!-- Konten Scheduling di sini -->
-                            <p class="text-gray-500">Scheduling module coming soon.</p>
-                        </div>
-                    </div>
+                    </section>
 
-                    <!-- ===== PAGE: ANALYTICS ===== -->
-                    <div id="page-analytics" class="page-content hidden">
-                        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
-                            <h3 class="text-xl font-semibold mb-4">Detailed Analytics</h3>
-                            <!-- Konten Analytics di sini -->
-                            <p class="text-gray-500">Detailed analytics module coming soon.</p>
+                    <!-- Halaman Content Production -->
+                    <section id="page-production" class="page-content">
+                        <div class="bg-white rounded-lg shadow-md">
+                            <div class="p-4 border-b">
+                                <h3 class="text-lg font-semibold">Tracking Produksi</h3>
+                            </div>
+                            <div class="p-4">
+                               <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Script</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status Produksi</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Editor</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Link Media</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="production-table-body" class="bg-white divide-y divide-gray-200">
+                                            <!-- Data diisi oleh JS -->
+                                            <tr><td colspan="5" class="p-4 text-center text-gray-500">Memuat data...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    </section>
                     
-                    <!-- ===== PAGE: TEAM MANAGEMENT ===== -->
-                    <div id="page-team" class="page-content hidden admin-only">
-                        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-xl font-semibold">Team Management</h3>
-                                <button id="btn-add-member" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center">
-                                    <i data-lucide="user-plus" class="w-5 h-5 mr-1"></i> Add Member
-                                </button>
+                    <!-- Halaman Scheduling -->
+                    <section id="page-scheduling" class="page-content">
+                        <div class="bg-white rounded-lg shadow-md p-6">
+                            <h3 class="text-lg font-semibold mb-4">Kalender Konten</h3>
+                            <!-- Placeholder untuk Kalender - Integrasi penuh memerlukan library seperti FullCalendar.js -->
+                            <!-- Ini adalah versi sederhana -->
+                            <div id="simple-calendar" class="grid grid-cols-7 gap-1">
+                                <!-- Header Hari -->
+                                <div class="text-center font-medium text-xs text-gray-500 uppercase">Min</div>
+                                <div class="text-center font-medium text-xs text-gray-500 uppercase">Sen</div>
+                                <div class="text-center font-medium text-xs text-gray-500 uppercase">Sel</div>
+                                <div class="text-center font-medium text-xs text-gray-500 uppercase">Rab</div>
+                                <div class="text-center font-medium text-xs text-gray-500 uppercase">Kam</div>
+                                <div class="text-center font-medium text-xs text-gray-500 uppercase">Jum</div>
+                                <div class="text-center font-medium text-xs text-gray-500 uppercase">Sab</div>
+                                <!-- Tanggal (Di-render oleh JS) -->
                             </div>
-                            
-                            <div class="overflow-x-auto">
-                                <table class="w-full min-w-max text-left">
-                                    <thead class="border-b dark:border-gray-700">
-                                        <tr class="text-gray-500 uppercase text-sm">
-                                            <th class="py-3 px-4">Name</th>
-                                            <th class="py-3 px-4">Email</th>
-                                            <th class="py-3 px-4">Role</th>
-                                            <th class="py-3 px-4">Joined</th>
-                                            <th class="py-3 px-4">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="team-table-body">
-                                        <!-- Data tim akan di-render di sini -->
-                                        <tr><td colspan="5" class="text-center py-8 text-gray-500">Loading team members...</td></tr>
-                                    </tbody>
-                                </table>
+                            <div id="schedule-list" class="mt-6">
+                                <h4 class="font-semibold mb-2">Jadwal Terdekat</h4>
+                                <div id="schedule-list-body" class="space-y-3">
+                                    <p class="text-gray-500">Memuat jadwal...</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </section>
 
-                    <!-- ===== PAGE: ACTIVITY LOGS ===== -->
-                    <div id="page-logs" class="page-content hidden admin-only">
-                        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
-                            <h3 class="text-xl font-semibold mb-4">Activity Logs</h3>
-                            <!-- Konten Logs di sini -->
-                            <p class="text-gray-500">Activity logs module coming soon.</p>
+                    <!-- Halaman Engagement Tracking -->
+                    <section id="page-engagement" class="page-content">
+                        <div class="bg-white rounded-lg shadow-md">
+                            <div class="p-4 border-b flex justify-between items-center">
+                                <h3 class="text-lg font-semibold">Input Performa Konten</h3>
+                                <div>
+                                    <label for="csv-upload" class="cursor-pointer px-3 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">
+                                        <i class="fas fa-file-csv mr-1"></i> Upload CSV
+                                    </label>
+                                    <input type="file" id="csv-upload" class="hidden" accept=".csv">
+                                </div>
+                            </div>
+                            <div class="p-4">
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Konten</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tgl Posting</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Views</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Likes</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Shares</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="performance-table-body" class="bg-white divide-y divide-gray-200">
+                                            <!-- Data diisi oleh JS -->
+                                            <tr><td colspan="6" class="p-4 text-center text-gray-500">Memuat data...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    </section>
+
+                    <!-- Halaman Analytics -->
+                    <section id="page-analytics" class="page-content">
+                        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                            <div class="p-6 bg-white rounded-lg shadow-md">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Performa per Kreator</h3>
+                                <canvas id="creator-chart"></canvas>
+                            </div>
+                            <div class="p-6 bg-white rounded-lg shadow-md">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Views Bulanan</h3>
+                                <canvas id="monthly-chart"></canvas>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Halaman Team Management (Admin Only) -->
+                    <section id="page-team" class="page-content">
+                         <div class="bg-white rounded-lg shadow-md">
+                            <div class="p-4 border-b">
+                                <h3 class="text-lg font-semibold">Manajemen Anggota Tim</h3>
+                            </div>
+                            <div class="p-4">
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="team-table-body" class="bg-white divide-y divide-gray-200">
+                                            <!-- Data diisi oleh JS -->
+                                            <tr><td colspan="4" class="p-4 text-center text-gray-500">Memuat data...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
 
                 </div>
             </main>
         </div>
     </div>
-    
-    <!-- Global Loading Spinner -->
-    <div id="global-loader" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
-        <div class="w-16 h-16 border-4 border-t-blue-500 border-gray-200 rounded-full animate-spin"></div>
-    </div>
 
     <script>
-        // GANTI DENGAN URL WEB APP APPS SCRIPT ANDA SETELAH DEPLOY
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxxvnm-PfVSaABT59Fo8WfANzwXVSa9gZoZIZ_c1f7XneGOEtZJe89YRrSYdiqSCek9/exec';
-        
-        // ===== GLOBAL STATE =====
-        let G_USER_PROFILE = null;
-        let G_USER_ROLE = null; // 'Admin', 'Creator', 'Editor'
-        let G_ID_TOKEN = null;
-        let G_CHARTS = {
-            performance: null,
-            status: null
+        // ========================================================================
+        // KONFIGURASI APLIKASI
+        // ========================================================================
+        // !!! PENTING: Ganti dengan URL Web App Anda setelah deploy Apps Script
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzE3rmLTP7mqFiPDEx0fCwgUDkcwXoMcWuzfGHyLComF5KRCTVLTza4Z8mHrSZGua22_w/exec'; 
+
+        // ========================================================================
+        // STATE APLIKASI
+        // ========================================================================
+        let currentUser = null;
+        let activePage = 'page-dashboard';
+        let charts = {}; // Untuk menyimpan instance Chart.js
+        let localDataCache = {
+            scripts: [],
+            production: [],
+            schedules: [],
+            performance: [],
+            team: [],
+            logs: []
         };
-        
-        // ===== HELPER FUNCTIONS =====
-        
+
+        // ========================================================================
+        // ELEMEN DOM
+        // ========================================================================
+        const pageLogin = document.getElementById('page-login');
+        const appWrapper = document.getElementById('app-wrapper');
+        const loginForm = document.getElementById('login-form');
+        const logoutButton = document.getElementById('logout-button');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const navLinks = document.querySelectorAll('.nav-link');
+        const pageTitle = document.getElementById('page-title');
+        const btnAddNew = document.getElementById('btn-add-new');
+        const userNameEl = document.getElementById('user-name');
+        const userRoleEl = document.getElementById('user-role');
+        const adminOnlyLinks = document.querySelectorAll('.admin-only');
+
+        // ========================================================================
+        // FUNGSI UTILITY & API
+        // ========================================================================
+
         /**
-         * Menampilkan/menyembunyikan loader global
-         * @param {boolean} show - Tampilkan (true) atau sembunyikan (false)
+         * Menampilkan atau menyembunyikan overlay loading
+         * @param {boolean} show - True untuk menampilkan, false untuk menyembunyikan
          */
-        function showLoader(show) {
-            const loader = document.getElementById('global-loader');
+        function showLoading(show) {
             if (show) {
-                loader.classList.remove('hidden');
+                loadingOverlay.classList.remove('hidden');
+                gsap.to(loadingOverlay, { opacity: 1, duration: 0.3 });
             } else {
-                loader.classList.add('hidden');
+                gsap.to(loadingOverlay, { 
+                    opacity: 0, 
+                    duration: 0.3, 
+                    onComplete: () => loadingOverlay.classList.add('hidden') 
+                });
             }
         }
 
         /**
-         * Menampilkan notifikasi error menggunakan SweetAlert2
-         * @param {string} title - Judul error
-         * @param {string} text - Teks error
-         */
-        function showError(title, text) {
-            Swal.fire({
-                icon: 'error',
-                title: title,
-                text: text,
-                confirmButtonColor: '#3B82F6' // bg-blue-500
-            });
-        }
-        
-        /**
-         * Menampilkan notifikasi sukses menggunakan SweetAlert2
-         * @param {string} title - Judul sukses
-         */
-        function showSuccess(title) {
-            Swal.fire({
-                icon: 'success',
-                title: title,
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: 3000,
-                timerProgressBar: true
-            });
-        }
-
-        /**
-         * Fungsi utama untuk memanggil API Google Apps Script
-         * @param {string} action - Nama fungsi/aksi di backend
+         * Wrapper untuk fetch ke Google Apps Script
+         * @param {string} action - Nama fungsi di Apps Script
          * @param {object} payload - Data yang dikirim
-         * @returns {Promise<object>} - Respon JSON dari backend
+         * @returns {Promise<object>} - Respon JSON dari Apps Script
          */
-        async function callAppsScript(action, payload = {}) {
-            showLoader(true);
+        async function fetchApi(action, payload = {}) {
+            showLoading(true);
             try {
                 const response = await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
-                    redirect: 'follow',
+                    mode: 'cors',
+                    cache: 'no-cache',
                     headers: {
-                        'Content-Type': 'text/plain;charset=utf-8', // Apps Script Web App seringkali lebih mudah menerima text/plain
+                        'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        token: G_ID_TOKEN, // Selalu kirim token untuk verifikasi
-                        action: action,
-                        payload: payload
-                    })
+                    body: JSON.stringify({ action, payload, user: currentUser }),
+                    redirect: 'follow'
                 });
 
                 if (!response.ok) {
@@ -437,616 +493,932 @@
                 return result.data;
 
             } catch (error) {
-                console.error('Error calling Apps Script:', action, error);
-                showError('API Error', error.message || 'Failed to communicate with the server.');
-                // Jika error otentikasi, paksa logout
-                if (error.message.includes("Invalid token") || error.message.includes("User not authorized")) {
-                    signOut();
-                }
+                console.error('API Error:', action, error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops... Terjadi Kesalahan',
+                    text: error.message || 'Gagal terhubung ke server. Silakan coba lagi.',
+                });
                 return null; // Mengembalikan null agar pemanggil bisa menangani
             } finally {
-                showLoader(false);
+                showLoading(false);
             }
         }
 
-        // ===== GOOGLE AUTHENTICATION =====
-        
         /**
-         * Callback saat Google API siap
+         * Menampilkan notifikasi toast
+         * @param {string} title - Judul notifikasi
+         * @param {string} icon - 'success', 'error', 'warning', 'info'
          */
-        function onLoadGoogleApi() {
-            gapi.load('auth2', function() {
-                gapi.auth2.init({
-                    client_id: document.querySelector('meta[name="google-signin-client_id"]').content
-                }).then(() => {
-                    // Cek jika sudah login sebelumnya
-                    const authInstance = gapi.auth2.getAuthInstance();
-                    if (authInstance.isSignedIn.get()) {
-                        onSignIn(authInstance.currentUser.get());
-                    } else {
-                        // Animasikan login box jika belum login
-                        gsap.from("#login-box", { 
-                            duration: 0.7, 
-                            y: -50, 
-                            opacity: 0, 
-                            ease: "power2.out" 
-                        });
-                    }
+        function showToast(title, icon = 'success') {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: icon,
+                title: title,
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+            });
+        }
+
+        // ========================================================================
+        // FUNGSI AUTENTIKASI
+        // ========================================================================
+
+        /**
+         * Memeriksa status login saat aplikasi dimuat
+         */
+        function checkLoginState() {
+            const storedUser = localStorage.getItem('contentUser');
+            if (storedUser) {
+                currentUser = JSON.parse(storedUser);
+                showAppWrapper();
+                loadDashboardData();
+            } else {
+                showLoginPage();
+            }
+            gsap.from('body', { opacity: 0, duration: 0.5 });
+        }
+
+        /**
+         * Menampilkan halaman login
+         */
+        function showLoginPage() {
+            pageLogin.classList.remove('hidden');
+            appWrapper.classList.add('hidden');
+            gsap.from(pageLogin, { opacity: 0, y: 20, duration: 0.5 });
+        }
+
+        /**
+         * Menampilkan aplikasi utama setelah login berhasil
+         */
+        function showAppWrapper() {
+            userNameEl.textContent = currentUser.name;
+            userRoleEl.textContent = currentUser.role;
+
+            // Atur visibilitas berdasarkan role
+            if (currentUser.role === 'Admin') {
+                adminOnlyLinks.forEach(link => link.classList.remove('hidden'));
+            } else {
+                adminOnlyLinks.forEach(link => link.classList.add('hidden'));
+            }
+            
+            pageLogin.classList.add('hidden');
+            appWrapper.classList.remove('hidden');
+            gsap.from(appWrapper, { opacity: 0, duration: 0.5 });
+            
+            // Set halaman default
+            navigateTo('page-dashboard');
+        }
+
+        /**
+         * Menangani submit form login (mengirim email)
+         */
+        async function handleLoginSubmit(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            if (!email) return;
+
+            const data = await fetchApi('sendLoginCode', { email });
+            
+            if (data && data.status === 'success') {
+                // Tampilkan modal SweetAlert untuk memasukkan kode
+                const { value: code } = await Swal.fire({
+                    title: 'Verifikasi Kode',
+                    text: `Kami telah mengirimkan kode ke ${email}. Silakan cek email Anda.`,
+                    input: 'text',
+                    inputLabel: 'Kode Verifikasi',
+                    inputPlaceholder: 'Masukkan 6 digit kode',
+                    inputAttributes: {
+                        maxlength: 6,
+                        autocapitalize: 'off',
+                        autocorrect: 'off'
+                    },
+                    showCancelButton: true,
+                    confirmButtonText: 'Verifikasi',
+                    showLoaderOnConfirm: true,
+                    preConfirm: (inputCode) => {
+                        return verifyLoginCode(email, inputCode);
+                    },
+                    allowOutsideClick: () => !Swal.isLoading()
                 });
-            });
-        }
 
-        /**
-         * Callback sukses login Google
-         * @param {object} googleUser - Objek user dari Google
-         */
-        async function onSignIn(googleUser) {
-            document.getElementById('auth-status').innerText = 'Verifying your account...';
-            
-            const profile = googleUser.getBasicProfile();
-            G_ID_TOKEN = googleUser.getAuthResponse().id_token;
-
-            // Verifikasi token di backend dan dapatkan role user
-            const data = await callAppsScript('verifyUser', { email: profile.getEmail(), name: profile.getName() });
-
-            if (data && data.role) {
-                G_USER_PROFILE = profile;
-                G_USER_ROLE = data.role;
-                
-                // Tampilkan aplikasi
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('main-app').classList.remove('hidden');
-                
-                // Inisialisasi UI
-                await initializeAppUI();
-                
-            } else {
-                document.getElementById('auth-status').innerText = data ? data.message : 'Authentication failed. You are not registered.';
-                signOut(); // Paksa logout jika user tidak terdaftar
-            }
-        }
-
-        /**
-         * Fungsi Logout
-         */
-        function signOut() {
-            const auth2 = gapi.auth2.getAuthInstance();
-            auth2.signOut().then(function () {
-                G_USER_PROFILE = null;
-                G_USER_ROLE = null;
-                G_ID_TOKEN = null;
-                
-                document.getElementById('main-app').classList.add('hidden');
-                document.getElementById('login-screen').classList.remove('hidden');
-                document.getElementById('auth-status').innerText = '';
-            });
-        }
-
-        // ===== INITIALIZE APP UI =====
-
-        /**
-         * Mengatur UI utama setelah login
-         */
-        async function initializeAppUI() {
-            // Setup User Info
-            document.getElementById('user-avatar').src = G_USER_PROFILE.getImageUrl();
-            document.getElementById('user-name').innerText = G_USER_PROFILE.getName();
-            document.getElementById('user-role').innerText = G_USER_ROLE;
-            
-            // Setup Ikon Lucide
-            lucide.createIcons();
-
-            // Setup Role-Based Access
-            if (G_USER_ROLE !== 'Admin') {
-                document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
-            } else {
-                 document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
-            }
-
-            // Muat data untuk halaman default (Dashboard)
-            await loadPage('dashboard');
-            
-            // Animasikan sidebar dan header
-            gsap.from("#sidebar", { duration: 0.5, x: -256, ease: "power2.out" });
-            gsap.from("main header", { duration: 0.5, y: -100, opacity: 0, ease: "power2.out", delay: 0.2 });
-        }
-
-        // ===== PAGE LOADING & ROUTING =====
-
-        /**
-         * Menampilkan halaman yang diminta dan memuat datanya
-         * @param {string} pageId - ID halaman (e.g., 'dashboard', 'scripts')
-         */
-        async function loadPage(pageId) {
-            // Sembunyikan semua halaman
-            document.querySelectorAll('.page-content').forEach(page => page.classList.add('hidden'));
-            
-            // Tampilkan halaman yang diminta
-            const targetPage = document.getElementById(`page-${pageId}`);
-            if (targetPage) {
-                targetPage.classList.remove('hidden');
-                
-                // Animasikan konten halaman
-                gsap.from(targetPage, { duration: 0.4, opacity: 0, y: 20, ease: "power1.out" });
-
-                // Set judul halaman
-                const link = document.querySelector(`.nav-link[href="#${pageId}"]`);
-                document.getElementById('page-title').innerText = link.innerText;
-
-                // Set active link di sidebar
-                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active-link', 'text-blue-600', 'bg-blue-50', 'dark:bg-gray-700', 'dark:text-blue-300'));
-                document.querySelectorAll('.nav-link').forEach(l => l.classList.add('text-gray-600', 'dark:text-gray-300'));
-                link.classList.add('active-link', 'text-blue-600', 'bg-blue-50', 'dark:bg-gray-700', 'dark:text-blue-300');
-                link.classList.remove('text-gray-600', 'dark:text-gray-300');
-                
-                // Muat data spesifik untuk halaman
-                switch(pageId) {
-                    case 'dashboard':
-                        await loadDashboardData();
-                        break;
-                    case 'scripts':
-                        await loadScriptsData();
-                        break;
-                    case 'team':
-                        await loadTeamData();
-                        break;
-                    // Tambahkan case lain untuk halaman lain
-                    case 'production':
-                    case 'scheduling':
-                    case 'analytics':
-                    case 'logs':
-                        // Fungsionalitas belum diimplementasikan
-                        break;
+                if (code) {
+                    Swal.fire({
+                        title: `Selamat Datang, ${code.name}!`,
+                        text: 'Login berhasil.',
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
                 }
             }
         }
-        
-        // ===== PAGE-SPECIFIC DATA LOADERS =====
 
         /**
-         * Memuat data untuk Dashboard
+         * Memverifikasi kode login ke Apps Script
          */
-        async function loadDashboardData() {
-            const data = await callAppsScript('getDashboardData');
-            if (!data) return;
+        async function verifyLoginCode(email, code) {
+            const data = await fetchApi('verifyCodeAndGetUser', { email, code });
 
-            // 1. Stats Cards
-            document.getElementById('stat-review').innerText = data.stats.review || 0;
-            document.getElementById('stat-scheduled').innerText = data.stats.scheduled || 0;
-            document.getElementById('stat-revisions').innerText = data.stats.revisions || 0;
-            document.getElementById('stat-views').innerText = new Intl.NumberFormat('id-ID').format(data.stats.views || 0);
-            
-            // Animasikan angka
-            gsap.from("#stat-review, #stat-scheduled, #stat-revisions, #stat-views", {
-                textContent: 0,
-                duration: 1,
-                ease: "power1.out",
-                snap: { textContent: 1 },
-                stagger: 0.1
+            if (data && data.status === 'success') {
+                currentUser = data.user;
+                // Simpan ke cache (localStorage)
+                localStorage.setItem('contentUser', JSON.stringify(currentUser));
+                showAppWrapper();
+                loadDashboardData();
+                return data.user;
+            } else {
+                Swal.showValidationMessage(data ? data.message : 'Verifikasi gagal');
+                return null;
+            }
+        }
+
+        /**
+         * Menangani logout
+         */
+        function handleLogout() {
+            localStorage.removeItem('contentUser');
+            currentUser = null;
+            showLoginPage();
+            showToast('Anda telah logout', 'info');
+        }
+
+        // ========================================================================
+        // FUNGSI NAVIGASI
+        // ========================================================================
+        
+        /**
+         * Berpindah ke halaman yang dituju
+         * @param {string} pageId - ID elemen section halaman
+         */
+        function navigateTo(pageId) {
+            // Sembunyikan semua halaman
+            document.querySelectorAll('.page-content').forEach(page => {
+                page.classList.remove('active');
             });
 
-            // 2. My Tasks
-            const tasksList = document.getElementById('my-tasks-list');
-            tasksList.innerHTML = ''; // Kosongkan
-            if (data.myTasks && data.myTasks.length > 0) {
-                data.myTasks.forEach(task => {
-                    tasksList.innerHTML += `
-                        <div class="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                            <div>
-                                <p class="font-semibold">${task.title}</p>
-                                <p class="text-sm text-gray-500">${task.description}</p>
-                            </div>
-                            <a href="${task.link}" class="text-blue-500 hover:underline text-sm">View</a>
+            // Tampilkan halaman yang dituju
+            const targetPage = document.getElementById(pageId);
+            if (targetPage) {
+                targetPage.classList.add('active');
+                gsap.from(targetPage, { opacity: 0, y: 10, duration: 0.4 });
+                
+                // Update judul halaman
+                const navLink = document.querySelector(`.nav-link[data-page="${pageId}"]`);
+                pageTitle.textContent = navLink ? navLink.textContent.trim() : 'Dashboard';
+                activePage = pageId;
+                
+                // Update highlight navlink
+                navLinks.forEach(link => {
+                    link.classList.remove('bg-gray-200');
+                    if(link.dataset.page === pageId) {
+                        link.classList.add('bg-gray-200');
+                    }
+                });
+
+                // Memuat data yang relevan untuk halaman tersebut
+                loadPageData(pageId);
+                // Update tombol "Tambah Baru"
+                updateAddNewButton(pageId);
+            }
+        }
+        
+        /**
+         * Memuat data berdasarkan halaman yang aktif
+         * @param {string} pageId - ID halaman
+         */
+        function loadPageData(pageId) {
+            switch(pageId) {
+                case 'page-dashboard':
+                    loadDashboardData();
+                    break;
+                case 'page-scripts':
+                    loadScriptsData();
+                    break;
+                case 'page-production':
+                    loadProductionData();
+                    break;
+                case 'page-scheduling':
+                    loadSchedulingData();
+                    break;
+                case 'page-engagement':
+                    loadPerformanceData();
+                    break;
+                case 'page-analytics':
+                    loadAnalyticsData();
+                    break;
+                case 'page-team':
+                    if (currentUser.role === 'Admin') loadTeamData();
+                    break;
+            }
+        }
+
+        /**
+         * Mengatur fungsi tombol "Tambah Baru" berdasarkan halaman
+         * @param {string} pageId - ID halaman
+         */
+        function updateAddNewButton(pageId) {
+            // Hapus event listener lama
+            const newBtn = btnAddNew.cloneNode(true);
+            btnAddNew.parentNode.replaceChild(newBtn, btnAddNew);
+            btnAddNew = newBtn; // Update referensi
+            
+            btnAddNew.classList.remove('hidden'); // Tampilkan secara default
+
+            switch(pageId) {
+                case 'page-scripts':
+                    btnAddNew.textContent = 'Tambah Script Baru';
+                    btnAddNew.onclick = showAddScriptModal;
+                    break;
+                case 'page-scheduling':
+                    btnAddNew.textContent = 'Buat Jadwal Baru';
+                    btnAddNew.onclick = showAddScheduleModal;
+                    break;
+                case 'page-engagement':
+                    btnAddNew.textContent = 'Input Performa';
+                    btnAddNew.onclick = showAddPerformanceModal;
+                    break;
+                case 'page-team':
+                    btnAddNew.textContent = 'Tambah Anggota Tim';
+                    btnAddNew.onclick = showAddTeamMemberModal;
+                    break;
+                default:
+                    btnAddNew.classList.add('hidden'); // Sembunyikan di halaman lain
+            }
+        }
+
+        // ========================================================================
+        // FUNGSI LOAD DATA PER HALAMAN
+        // ========================================================================
+        
+        async function loadDashboardData() {
+            const data = await fetchApi('getDashboardStats');
+            if (!data) return;
+
+            // Update Stat Cards
+            document.getElementById('stat-draft').textContent = data.stats.draft || 0;
+            document.getElementById('stat-revision').textContent = data.stats.revision || 0;
+            document.getElementById('stat-approved').textContent = data.stats.approved || 0;
+            document.getElementById('stat-views').textContent = data.stats.views ? Number(data.stats.views).toLocaleString('id-ID') : 0;
+            
+            // Update Activity Log
+            const activityLogEl = document.getElementById('activity-log');
+            activityLogEl.innerHTML = '';
+            if (data.logs.length > 0) {
+                data.logs.forEach(log => {
+                    const logEl = document.createElement('div');
+                    logEl.className = 'flex items-center text-sm';
+                    logEl.innerHTML = `
+                        <div class="p-2 bg-gray-100 rounded-full mr-3"><i class="fas fa-info-circle text-gray-500"></i></div>
+                        <div>
+                            <p class="text-gray-800">${log.message}</p>
+                            <p class="text-xs text-gray-500">${new Date(log.timestamp).toLocaleString('id-ID')} oleh ${log.user}</p>
                         </div>
                     `;
+                    activityLogEl.appendChild(logEl);
                 });
             } else {
-                tasksList.innerHTML = '<p class="text-gray-500">No pending tasks. Great job!</p>';
+                activityLogEl.innerHTML = '<p class="text-gray-500">Belum ada aktivitas.</p>';
             }
 
-            // 3. Status Chart (Doughnut)
-            const statusCtx = document.getElementById('statusChart').getContext('2d');
-            if (G_CHARTS.status) G_CHARTS.status.destroy();
-            G_CHARTS.status = new Chart(statusCtx, {
-                type: 'doughnut',
+            // Update My Tasks (Contoh: script yang perlu direvisi)
+            const myTasksEl = document.getElementById('my-tasks');
+            myTasksEl.innerHTML = '';
+            const myTasks = data.tasks.filter(task => (task.creator === currentUser.email && task.status === 'Revision Needed') || (task.editor === currentUser.email && task.status_produksi === 'In Progress'));
+            
+            if (myTasks.length > 0) {
+                myTasks.forEach(task => {
+                    const taskEl = document.createElement('div');
+                    taskEl.className = 'p-3 bg-yellow-50 rounded-md border border-yellow-200';
+                    taskEl.innerHTML = `
+                        <p class="font-medium text-yellow-800">${task.judul || 'Task Produksi'}</p>
+                        <p class="text-sm text-yellow-700">${task.status === 'Revision Needed' ? 'Script perlu revisi' : `Produksi: ${task.status_produksi}`}</p>
+                    `;
+                    myTasksEl.appendChild(taskEl);
+                });
+            } else {
+                myTasksEl.innerHTML = '<p class="text-gray-500">Tidak ada task mendesak.</p>';
+            }
+        }
+        
+        async function loadScriptsData() {
+            const data = await fetchApi('getScripts');
+            if (!data) return;
+            localDataCache.scripts = data; // Simpan di cache
+            renderScriptsTable(data);
+        }
+
+        async function loadProductionData() {
+            const data = await fetchApi('getProductionTasks');
+            if (!data) return;
+            localDataCache.production = data;
+            renderProductionTable(data);
+        }
+
+        async function loadSchedulingData() {
+            const data = await fetchApi('getSchedules');
+            if (!data) return;
+            localDataCache.schedules = data;
+            renderScheduleList(data);
+            // renderSimpleCalendar(data); // (Implementasi kalender)
+        }
+
+        async function loadPerformanceData() {
+            const data = await fetchApi('getPerformanceData');
+            if (!data) return;
+            localDataCache.performance = data;
+            renderPerformanceTable(data);
+        }
+
+        async function loadAnalyticsData() {
+            const data = await fetchApi('getAnalyticsData');
+            if (!data) return;
+            renderAnalyticsCharts(data);
+        }
+        
+        async function loadTeamData() {
+            const data = await fetchApi('getTeamMembers');
+            if (!data) return;
+            localDataCache.team = data;
+            renderTeamTable(data);
+        }
+
+        // ========================================================================
+        // FUNGSI RENDER DATA KE TABEL
+        // ========================================================================
+
+        function renderScriptsTable(data) {
+            const tbody = document.getElementById('scripts-table-body');
+            tbody.innerHTML = '';
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">Belum ada script.</td></tr>';
+                return;
+            }
+            data.forEach(script => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">${script.judul}</div>
+                        <div class="text-sm text-gray-500">${script.id}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${script.creator_name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(script.status)}">
+                            ${script.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${new Date(script.last_update).toLocaleDateString('id-ID')}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="showEditScriptModal('${script.id}')" class="text-indigo-600 hover:text-indigo-900 mr-3"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteScript('${script.id}')" class="text-red-600 hover:text-red-900 ${currentUser.role !== 'Admin' ? 'hidden' : ''}"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        function renderProductionTable(data) {
+            const tbody = document.getElementById('production-table-body');
+            tbody.innerHTML = '';
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">Belum ada data produksi.</td></tr>';
+                return;
+            }
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.script_judul}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(item.status_produksi)}">
+                            ${item.status_produksi}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${item.editor_name || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        ${item.link_media ? `<a href="${item.link_media}" target="_blank" class="text-blue-600 hover:underline">Lihat Media</a>` : '-'}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="showEditProductionModal('${item.id}')" class="text-indigo-600 hover:text-indigo-900"><i class="fas fa-edit"></i> Edit</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        function renderScheduleList(data) {
+            const listBody = document.getElementById('schedule-list-body');
+            listBody.innerHTML = '';
+            if (data.length === 0) {
+                listBody.innerHTML = '<p class="text-gray-500">Belum ada jadwal.</p>';
+                return;
+            }
+            data.sort((a,b) => new Date(a.tgl_posting) - new Date(b.tgl_posting)); // Urutkan
+            
+            data.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'p-3 bg-gray-50 rounded-md border flex justify-between items-center';
+                div.innerHTML = `
+                    <div>
+                        <p class="font-medium text-gray-900">${item.script_judul}</p>
+                        <p class="text-sm text-gray-600">Platform: ${item.platform} | ${new Date(item.tgl_posting).toLocaleString('id-ID')}</p>
+                    </div>
+                    <button onclick="deleteSchedule('${item.id}')" class="text-red-500 hover:text-red-700 ${currentUser.role !== 'Admin' ? 'hidden' : ''}"><i class="fas fa-trash"></i></button>
+                `;
+                listBody.appendChild(div);
+            });
+        }
+        
+        function renderPerformanceTable(data) {
+            const tbody = document.getElementById('performance-table-body');
+            tbody.innerHTML = '';
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-gray-500">Belum ada data performa.</td></tr>';
+                return;
+            }
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.script_judul}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${new Date(item.tgl_posting).toLocaleDateString('id-ID')}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${Number(item.views).toLocaleString('id-ID')}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${Number(item.likes).toLocaleString('id-ID')}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${Number(item.shares).toLocaleString('id-ID')}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="showAddPerformanceModal('${item.id}')" class="text-indigo-600 hover:text-indigo-900"><i class="fas fa-edit"></i> Edit</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        function renderTeamTable(data) {
+            const tbody = document.getElementById('team-table-body');
+            tbody.innerHTML = '';
+            data.forEach(member => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${member.name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${member.email}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${member.role}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="showAddTeamMemberModal('${member.email}')" class="text-indigo-600 hover:text-indigo-900 mr-3"><i class="fas fa-edit"></i></button>
+                        ${currentUser.email !== member.email ? `<button onclick="deleteTeamMember('${member.email}')" class="text-red-600 hover:text-red-900"><i class="fas fa-trash"></i></button>` : ''}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        /**
+         * Helper untuk warna status
+         * @param {string} status - Teks status
+         * @returns {string} - Kelas Tailwind
+         */
+        function getStatusColor(status) {
+            switch (status) {
+                case 'Draft': return 'bg-gray-100 text-gray-800';
+                case 'Review': return 'bg-blue-100 text-blue-800';
+                case 'Revision Needed': return 'bg-yellow-100 text-yellow-800';
+                case 'Approved': return 'bg-green-100 text-green-800';
+                case 'In Progress': return 'bg-indigo-100 text-indigo-800';
+                case 'Completed': return 'bg-green-100 text-green-800';
+                case 'Posted': return 'bg-purple-100 text-purple-800';
+                default: return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        // ========================================================================
+        // FUNGSI MODAL (CREATE/UPDATE)
+        // ========================================================================
+        
+        // --- SCRIPT MODALS ---
+        async function showAddScriptModal() {
+            Swal.fire({
+                title: 'Tambah Script Baru',
+                html: `
+                    <input id="swal-judul" class="swal2-input" placeholder="Judul Script">
+                    <textarea id="swal-deskripsi" class="swal2-textarea" placeholder="Deskripsi singkat..."></textarea>
+                    <input id="swal-link-script" class="swal2-input" placeholder="Link Google Docs Script">
+                `,
+                confirmButtonText: 'Simpan Draf',
+                focusConfirm: false,
+                preConfirm: () => {
+                    return {
+                        judul: document.getElementById('swal-judul').value,
+                        deskripsi: document.getElementById('swal-deskripsi').value,
+                        link_script: document.getElementById('swal-link-script').value,
+                    }
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    const payload = { ...result.value, creator_email: currentUser.email, creator_name: currentUser.name };
+                    const data = await fetchApi('addScript', payload);
+                    if (data) {
+                        showToast('Script berhasil ditambahkan');
+                        loadScriptsData(); // Refresh data
+                        loadDashboardData(); // Refresh dashboard
+                    }
+                }
+            });
+        }
+
+        async function showEditScriptModal(scriptId) {
+            const script = localDataCache.scripts.find(s => s.id === scriptId);
+            if (!script) return;
+            
+            // Hanya Admin, atau creator asli yang bisa edit detail.
+            // Role lain (misal Editor) hanya bisa ubah status.
+            const canEditDetails = currentUser.role === 'Admin' || currentUser.email === script.creator;
+
+            Swal.fire({
+                title: 'Edit Script',
+                html: `
+                    <input id="swal-judul" class="swal2-input" placeholder="Judul Script" value="${script.judul}" ${!canEditDetails ? 'disabled' : ''}>
+                    <textarea id="swal-deskripsi" class="swal2-textarea" placeholder="Deskripsi singkat...">${script.deskripsi}</textarea>
+                    <input id="swal-link-script" class="swal2-input" placeholder="Link Google Docs Script" value="${script.link_script}" ${!canEditDetails ? 'disabled' : ''}>
+                    <select id="swal-status" class="swal2-select">
+                        <option value="Draft" ${script.status === 'Draft' ? 'selected' : ''}>Draft</option>
+                        <option value="Review" ${script.status === 'Review' ? 'selected' : ''}>Kirim untuk Review</option>
+                        <option value="Revision Needed" ${script.status === 'Revision Needed' ? 'selected' : ''}>Perlu Revisi</option>
+                        <option value="Approved" ${script.status === 'Approved' ? 'selected' : ''}>Setujui (Approved)</option>
+                    </select>
+                `,
+                confirmButtonText: 'Update',
+                focusConfirm: false,
+                preConfirm: () => {
+                    return {
+                        id: scriptId,
+                        judul: document.getElementById('swal-judul').value,
+                        deskripsi: document.getElementById('swal-deskripsi').value,
+                        link_script: document.getElementById('swal-link-script').value,
+                        status: document.getElementById('swal-status').value
+                    }
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    const data = await fetchApi('updateScript', result.value);
+                    if (data) {
+                        showToast('Script berhasil diupdate');
+                        loadScriptsData();
+                        loadDashboardData();
+                    }
+                }
+            });
+        }
+
+        async function deleteScript(scriptId) {
+            Swal.fire({
+                title: 'Anda yakin?',
+                text: "Script akan dihapus permanen!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Ya, hapus!',
+                cancelButtonText: 'Batal'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    const data = await fetchApi('deleteScript', { id: scriptId });
+                    if (data) {
+                        showToast('Script berhasil dihapus');
+                        loadScriptsData();
+                        loadDashboardData();
+                    }
+                }
+            });
+        }
+        
+        // --- PRODUCTION MODAL ---
+        async function showEditProductionModal(taskId) {
+            const task = localDataCache.production.find(t => t.id === taskId);
+            if (!task) return;
+            
+            const teamOptions = localDataCache.team.filter(t => t.role === 'Editor' || t.role === 'Admin')
+                                    .map(t => `<option value="${t.email}" ${task.editor === t.email ? 'selected' : ''}>${t.name}</option>`)
+                                    .join('');
+
+            Swal.fire({
+                title: 'Update Status Produksi',
+                html: `
+                    <h4 class="text-lg font-semibold mb-2">${task.script_judul}</h4>
+                    <select id="swal-prod-status" class="swal2-select">
+                        <option value="Waiting" ${task.status_produksi === 'Waiting' ? 'selected' : ''}>Waiting</option>
+                        <option value="In Progress" ${task.status_produksi === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                        <option value="Review" ${task.status_produksi === 'Review' ? 'selected' : ''}>Review</option>
+                        <option value="Completed" ${task.status_produksi === 'Completed' ? 'selected' : ''}>Completed</option>
+                    </select>
+                    <select id="swal-editor" class="swal2-select">
+                        <option value="">Pilih Editor</option>
+                        ${teamOptions}
+                    </select>
+                    <input id="swal-link-media" class="swal2-input" placeholder="Link Media (Google Drive, dll)" value="${task.link_media || ''}">
+                    <textarea id="swal-notes" class="swal2-textarea" placeholder="Catatan Editor...">${task.catatan || ''}</textarea>
+                `,
+                confirmButtonText: 'Update',
+                focusConfirm: false,
+                preConfirm: () => {
+                    return {
+                        id: taskId,
+                        status_produksi: document.getElementById('swal-prod-status').value,
+                        editor: document.getElementById('swal-editor').value,
+                        link_media: document.getElementById('swal-link-media').value,
+                        catatan: document.getElementById('swal-notes').value
+                    }
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    const data = await fetchApi('updateProductionTask', result.value);
+                    if (data) {
+                        showToast('Status produksi diupdate');
+                        loadProductionData();
+                    }
+                }
+            });
+        }
+        
+        // --- SCHEDULE MODAL ---
+        async function showAddScheduleModal() {
+            // Ambil script yang sudah 'Completed' tapi belum dijadwal
+            const productionCompleted = localDataCache.production.filter(p => p.status_produksi === 'Completed');
+            const scheduledIds = localDataCache.schedules.map(s => s.production_id);
+            const options = productionCompleted
+                                .filter(p => !scheduledIds.includes(p.id))
+                                .map(p => `<option value="${p.id}">${p.script_judul}</option>`)
+                                .join('');
+
+            if (options.length === 0) {
+                showToast('Tidak ada konten yang siap dijadwal', 'info');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Buat Jadwal Posting',
+                html: `
+                    <select id="swal-prod-id" class="swal2-select">
+                        <option value="">Pilih Konten</option>
+                        ${options}
+                    </select>
+                    <input id="swal-tgl-posting" class="swal2-input" type="datetime-local">
+                    <select id="swal-platform" class="swal2-select">
+                        <option value="YouTube">YouTube</option>
+                        <option value="TikTok">TikTok</option>
+                        <option value="Instagram">Instagram</option>
+                        <option value="Lainnya">Lainnya</option>
+                    </select>
+                `,
+                confirmButtonText: 'Jadwalkan',
+                focusConfirm: false,
+                preConfirm: () => {
+                    return {
+                        production_id: document.getElementById('swal-prod-id').value,
+                        tgl_posting: document.getElementById('swal-tgl-posting').value,
+                        platform: document.getElementById('swal-platform').value
+                    }
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed && result.value.production_id && result.value.tgl_posting) {
+                    const data = await fetchApi('addSchedule', result.value);
+                    if (data) {
+                        showToast('Konten berhasil dijadwalkan');
+                        loadSchedulingData();
+                    }
+                }
+            });
+        }
+        
+        // ... (Fungsi deleteSchedule)
+        
+        // --- PERFORMANCE MODAL ---
+        async function showAddPerformanceModal(performanceId = null) {
+            let item = { script_judul: '', tgl_posting: '', views: '', likes: '', shares: '', comments: '' };
+            let title = 'Input Performa Baru';
+            let schedule_id = '';
+
+            if (performanceId) {
+                // Mode Edit
+                item = localDataCache.performance.find(p => p.id === performanceId);
+                title = 'Edit Performa';
+            }
+            
+            // Opsi: Ambil dari jadwal yang sudah posting tapi belum ada data performa
+            const postedSchedules = localDataCache.schedules.filter(s => new Date(s.tgl_posting) <= new Date());
+            const performanceIds = localDataCache.performance.map(p => p.schedule_id);
+            const scheduleOptions = postedSchedules
+                                .filter(s => !performanceIds.includes(s.id))
+                                .map(s => `<option value="${s.id}">${s.script_judul} @ ${s.platform}</option>`)
+                                .join('');
+
+            Swal.fire({
+                title: title,
+                html: `
+                    <select id="swal-schedule-id" class="swal2-select" ${performanceId ? 'disabled' : ''}>
+                        <option value="">Pilih Konten yang Sudah Tayang</option>
+                        ${scheduleOptions}
+                        ${performanceId ? `<option value="${item.schedule_id}" selected>${item.script_judul}</option>` : ''}
+                    </select>
+                    <input id="swal-views" class="swal2-input" type="number" placeholder="Views" value="${item.views}">
+                    <input id="swal-likes" class="swal2-input" type="number" placeholder="Likes" value="${item.likes}">
+                    <input id="swal-shares" class="swal2-input" type="number" placeholder="Shares" value="${item.shares}">
+                    <input id="swal-comments" class="swal2-input" type="number" placeholder="Comments" value="${item.comments}">
+                `,
+                confirmButtonText: 'Simpan',
+                focusConfirm: false,
+                preConfirm: () => {
+                    return {
+                        id: performanceId, // Null jika baru
+                        schedule_id: document.getElementById('swal-schedule-id').value,
+                        views: document.getElementById('swal-views').value,
+                        likes: document.getElementById('swal-likes').value,
+                        shares: document.getElementById('swal-shares').value,
+                        comments: document.getElementById('swal-comments').value,
+                    }
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    const action = performanceId ? 'updatePerformance' : 'addPerformance';
+                    const data = await fetchApi(action, result.value);
+                    if (data) {
+                        showToast('Data performa disimpan');
+                        loadPerformanceData();
+                        loadDashboardData();
+                    }
+                }
+            });
+        }
+        
+        // --- TEAM MODAL (Admin) ---
+        async function showAddTeamMemberModal(email = null) {
+            let member = { name: '', email: '', role: 'Creator' };
+            let title = 'Tambah Anggota Tim';
+            let isEdit = false;
+            
+            if(email) {
+                member = localDataCache.team.find(m => m.email === email);
+                title = 'Edit Anggota Tim';
+                isEdit = true;
+            }
+            
+            Swal.fire({
+                title: title,
+                html: `
+                    <input id="swal-name" class="swal2-input" placeholder="Nama Lengkap" value="${member.name}">
+                    <input id="swal-email" class="swal2-input" type="email" placeholder="Email" value="${member.email}" ${isEdit ? 'disabled' : ''}>
+                    <select id="swal-role" class="swal2-select">
+                        <option value="Creator" ${member.role === 'Creator' ? 'selected' : ''}>Creator</option>
+                        <option value="Editor" ${member.role === 'Editor' ? 'selected' : ''}>Editor</option>
+                        <option value="Admin" ${member.role === 'Admin' ? 'selected' : ''}>Admin</option>
+                    </select>
+                `,
+                confirmButtonText: 'Simpan',
+                focusConfirm: false,
+                preConfirm: () => {
+                    return {
+                        name: document.getElementById('swal-name').value,
+                        email: document.getElementById('swal-email').value,
+                        role: document.getElementById('swal-role').value
+                    }
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    const action = isEdit ? 'updateTeamMember' : 'addTeamMember';
+                    const data = await fetchApi(action, result.value);
+                    if (data) {
+                        showToast('Anggota tim disimpan');
+                        loadTeamData();
+                    }
+                }
+            });
+        }
+        
+        async function deleteTeamMember(email) {
+             Swal.fire({
+                title: 'Anda yakin?',
+                text: "Anggota tim akan dihapus!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Ya, hapus!',
+                cancelButtonText: 'Batal'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    const data = await fetchApi('deleteTeamMember', { email });
+                    if (data) {
+                        showToast('Anggota tim dihapus');
+                        loadTeamData();
+                    }
+                }
+            });
+        }
+
+        // ========================================================================
+        // FUNGSI ANALYTICS (CHART.JS)
+        // ========================================================================
+        
+        function renderAnalyticsCharts(data) {
+            // Data Performa per Kreator
+            const creatorCtx = document.getElementById('creator-chart').getContext('2d');
+            if (charts.creator) charts.creator.destroy(); // Hancurkan chart lama
+            charts.creator = new Chart(creatorCtx, {
+                type: 'bar',
                 data: {
-                    labels: data.statusChart.labels,
+                    labels: data.creatorStats.labels,
                     datasets: [{
-                        label: 'Content Status',
-                        data: data.statusChart.data,
-                        backgroundColor: [
-                            '#EAB308', // yellow-500 (Draft)
-                            '#3B82F6', // blue-500 (Review)
-                            '#22C55E', // green-500 (Approved)
-                            '#EF4444', // red-500 (Revision)
-                        ],
-                        borderColor: document.body.classList.contains('dark') ? '#1F2937' : '#FFFFFF',
-                        borderWidth: 4
+                        label: 'Total Views',
+                        data: data.creatorStats.data,
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
                     }]
                 },
                 options: {
                     responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                color: document.body.classList.contains('dark') ? '#E5E7EB' : '#374151'
-                            }
-                        }
-                    }
+                    scales: { y: { beginAtZero: true } }
                 }
             });
-            
-            // 4. Performance Chart (Line)
-            const perfCtx = document.getElementById('performanceChart').getContext('2d');
-            if (G_CHARTS.performance) G_CHARTS.performance.destroy();
-            const isDark = document.body.classList.contains('dark');
-            const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
-            const labelColor = isDark ? '#E5E7EB' : '#374151';
 
-            G_CHARTS.performance = new Chart(perfCtx, {
+            // Data Views Bulanan
+            const monthlyCtx = document.getElementById('monthly-chart').getContext('2d');
+            if (charts.monthly) charts.monthly.destroy(); // Hancurkan chart lama
+            charts.monthly = new Chart(monthlyCtx, {
                 type: 'line',
                 data: {
-                    labels: data.performanceChart.labels,
-                    datasets: [
-                        {
-                            label: 'Views',
-                            data: data.performanceChart.views,
-                            borderColor: '#3B82F6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                            fill: true,
-                            tension: 0.4,
-                            yAxisID: 'y'
-                        },
-                        {
-                            label: 'Likes',
-                            data: data.performanceChart.likes,
-                            borderColor: '#22C55E',
-                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                            fill: true,
-                            tension: 0.4,
-                            yAxisID: 'y1'
-                        }
-                    ]
+                    labels: data.monthlyStats.labels,
+                    datasets: [{
+                        label: 'Total Views',
+                        data: data.monthlyStats.data,
+                        fill: false,
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
                 },
-                options: {
+                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            grid: { color: gridColor },
-                            ticks: { color: labelColor }
-                        },
-                        y: {
-                            type: 'linear',
-                            position: 'left',
-                            title: { display: true, text: 'Views', color: labelColor },
-                            grid: { color: gridColor },
-                            ticks: { color: labelColor }
-                        },
-                        y1: {
-                            type: 'linear',
-                            position: 'right',
-                            title: { display: true, text: 'Likes', color: labelColor },
-                            grid: { drawOnChartArea: false }, // Hanya tampilkan grid untuk y-axis utama
-                            ticks: { color: labelColor }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                            labels: { color: labelColor }
-                        },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            titleFont: { weight: 'bold' },
-                        }
-                    },
-                    interaction: {
-                        mode: 'index',
-                        intersect: false
-                    }
+                    scales: { y: { beginAtZero: true } }
                 }
             });
         }
+
+        // ========================================================================
+        // EVENT LISTENERS
+        // ========================================================================
         
-        /**
-         * Memuat data untuk Script Management
-         */
-        async function loadScriptsData() {
-            const data = await callAppsScript('getScripts');
-            const tableBody = document.getElementById('scripts-table-body');
-            tableBody.innerHTML = '';
-            
-            if (data && data.length > 0) {
-                data.forEach(script => {
-                    const statusColor = {
-                        'Draft': 'bg-gray-100 text-gray-600',
-                        'Review': 'bg-blue-100 text-blue-600',
-                        'Approved': 'bg-green-100 text-green-600',
-                        'Revision': 'bg-yellow-100 text-yellow-600'
-                    }[script.status] || 'bg-gray-100 text-gray-600';
-                    
-                    const canEdit = (G_USER_ROLE === 'Admin' || G_USER_ROLE === 'Editor');
-                    const canChangeStatus = (G_USER_ROLE === 'Admin' || G_USER_ROLE === 'Editor');
-                    
-                    tableBody.innerHTML += `
-                        <tr class="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <td class="py-3 px-4 font-medium">${script.title}</td>
-                            <td class="py-3 px-4 text-gray-600 dark:text-gray-300">${script.creator_name}</td>
-                            <td class="py-3 px-4">
-                                <span class="px-3 py-1 rounded-full text-xs font-semibold ${statusColor}">${script.status}</span>
-                            </td>
-                            <td class="py-3 px-4">
-                                <a href="${script.link}" target="_blank" class="text-blue-500 hover:underline">View Script</a>
-                            </td>
-                            <td class="py-3 px-4 text-gray-500 text-sm">${new Date(script.last_update).toLocaleString('id-ID')}</td>
-                            <td class="py-3 px-4 space-x-2">
-                                ${canChangeStatus ? `<button class="p-1 text-blue-500 hover:text-blue-700" onclick="changeScriptStatus('${script.script_id}', '${script.status}')"><i data-lucide="check-circle"></i></button>` : ''}
-                                ${canEdit ? `<button class="p-1 text-yellow-500 hover:text-yellow-700" onclick="editScript('${script.script_id}')"><i data-lucide="edit-2"></i></button>` : ''}
-                                ${canEdit ? `<button class="p-1 text-red-500 hover:text-red-700" onclick="deleteScript('${script.script_id}')"><i data-lucide="trash-2"></i></button>` : ''}
-                            </td>
-                        </tr>
-                    `;
-                });
-            } else {
-                tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-500">No scripts found.</td></tr>';
-            }
-            lucide.createIcons();
-        }
-        
-        /**
-         * Memuat data untuk Team Management
-         */
-        async function loadTeamData() {
-            const data = await callAppsScript('getUsers');
-            const tableBody = document.getElementById('team-table-body');
-            tableBody.innerHTML = '';
-            
-            if (data && data.length > 0) {
-                data.forEach(user => {
-                    tableBody.innerHTML += `
-                        <tr class="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <td class="py-3 px-4 font-medium">${user.name}</td>
-                            <td class="py-3 px-4 text-gray-600 dark:text-gray-300">${user.email}</td>
-                            <td class="py-3 px-4 font-semibold">${user.role}</td>
-                            <td class="py-3 px-4 text-gray-500 text-sm">${new Date(user.joined_date).toLocaleDateString('id-ID')}</td>
-                            <td class="py-3 px-4 space-x-2">
-                                <button class="p-1 text-yellow-500 hover:text-yellow-700" onclick="editUser('${user.email}', '${user.name}', '${user.role}')"><i data-lucide="edit-2"></i></button>
-                                <button class="p-1 text-red-500 hover:text-red-700" onclick="deleteUser('${user.email}')"><i data-lucide="trash-2"></i></button>
-                            </td>
-                        </tr>
-                    `;
-                });
-            } else {
-                tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-500">No team members found.</td></tr>';
-            }
-            lucide.createIcons();
-        }
-
-        // ===== CRUD & ACTIONS =====
-        
-        /**
-         * Menampilkan modal untuk menambah script baru
-         */
-        async function showAddScriptModal() {
-            const { value: formValues } = await Swal.fire({
-                title: 'Submit New Script',
-                html: `
-                    <input id="swal-title" class="swal2-input" placeholder="Script Title">
-                    <input id="swal-link" class="swal2-input" placeholder="Google Doc Link">
-                    <textarea id="swal-notes" class="swal2-textarea" placeholder="Brief notes for the reviewer..."></textarea>
-                `,
-                focusConfirm: false,
-                preConfirm: () => {
-                    return {
-                        title: document.getElementById('swal-title').value,
-                        link: document.getElementById('swal-link').value,
-                        notes: document.getElementById('swal-notes').value
-                    }
-                },
-                showCancelButton: true,
-                confirmButtonText: 'Submit for Review',
-                confirmButtonColor: '#3B82F6',
-                cancelButtonColor: '#6B7280'
-            });
-
-            if (formValues) {
-                if (!formValues.title || !formValues.link) {
-                    showError('Validation Error', 'Title and Link are required.');
-                    return;
-                }
-                const result = await callAppsScript('addScript', formValues);
-                if (result) {
-                    showSuccess('Script Submitted!');
-                    await loadScriptsData(); // Refresh data
-                    await loadDashboardData(); // Refresh stats
-                }
-            }
-        }
-        
-        /**
-         * Mengubah status script
-         */
-        async function changeScriptStatus(scriptId, currentStatus) {
-            const { value: newStatus } = await Swal.fire({
-                title: 'Change Script Status',
-                input: 'select',
-                inputOptions: {
-                    'Draft': 'Draft',
-                    'Review': 'In Review',
-                    'Approved': 'Approved',
-                    'Revision': 'Revision Needed'
-                },
-                inputValue: currentStatus,
-                showCancelButton: true,
-                confirmButtonColor: '#3B82F6',
-                cancelButtonColor: '#6B7280'
-            });
-
-            if (newStatus && newStatus !== currentStatus) {
-                const result = await callAppsScript('updateScriptStatus', { script_id: scriptId, status: newStatus });
-                if (result) {
-                    showSuccess('Status Updated!');
-                    await loadScriptsData(); // Refresh data
-                    await loadDashboardData(); // Refresh stats
-                }
-            }
-        }
-
-        /**
-         * Menampilkan modal untuk menambah anggota tim baru
-         */
-        async function showAddTeamMemberModal() {
-            const { value: formValues } = await Swal.fire({
-                title: 'Add New Team Member',
-                html: `
-                    <input id="swal-email" class="swal2-input" placeholder="User Email">
-                    <input id="swal-name" class="swal2-input" placeholder="User Name">
-                    <select id="swal-role" class="swal2-select">
-                        <option value="Creator">Creator</option>
-                        <option value="Editor">Editor</option>
-                        <option value="Admin">Admin</option>
-                    </select>
-                `,
-                focusConfirm: false,
-                preConfirm: () => {
-                    return {
-                        email: document.getElementById('swal-email').value,
-                        name: document.getElementById('swal-name').value,
-                        role: document.getElementById('swal-role').value
-                    }
-                },
-                showCancelButton: true,
-                confirmButtonText: 'Add Member',
-                confirmButtonColor: '#16A34A', // bg-green-600
-                cancelButtonColor: '#6B7280'
-            });
-
-            if (formValues) {
-                if (!formValues.email || !formValues.name) {
-                    showError('Validation Error', 'Email and Name are required.');
-                    return;
-                }
-                const result = await callAppsScript('addUser', formValues);
-                if (result) {
-                    showSuccess('Member Added!');
-                    await loadTeamData(); // Refresh data
-                }
-            }
-        }
-
-        /**
-         * Mengedit user
-         */
-        async function editUser(email, name, role) {
-             const { value: formValues } = await Swal.fire({
-                title: 'Edit Team Member',
-                html: `
-                    <input id="swal-email" class="swal2-input" value="${email}" readonly>
-                    <input id="swal-name" class="swal2-input" value="${name}">
-                    <select id="swal-role" class="swal2-select">
-                        <option value="Creator" ${role === 'Creator' ? 'selected' : ''}>Creator</option>
-                        <option value="Editor" ${role === 'Editor' ? 'selected' : ''}>Editor</option>
-                        <option value="Admin" ${role === 'Admin' ? 'selected' : ''}>Admin</option>
-                    </select>
-                `,
-                focusConfirm: false,
-                preConfirm: () => {
-                    return {
-                        email: document.getElementById('swal-email').value,
-                        name: document.getElementById('swal-name').value,
-                        role: document.getElementById('swal-role').value
-                    }
-                },
-                showCancelButton: true,
-                confirmButtonText: 'Update Member',
-                confirmButtonColor: '#EAB308', // bg-yellow-500
-                cancelButtonColor: '#6B7280'
-            });
-
-            if (formValues) {
-                const result = await callAppsScript('updateUser', formValues);
-                if (result) {
-                    showSuccess('Member Updated!');
-                    await loadTeamData(); // Refresh data
-                }
-            }
-        }
-
-        /**
-         * Menghapus user
-         */
-        async function deleteUser(email) {
-            Swal.fire({
-                title: 'Are you sure?',
-                text: `This will remove ${email} from the team. This action cannot be undone.`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#EF4444', // bg-red-500
-                cancelButtonColor: '#6B7280',
-                confirmButtonText: 'Yes, delete it!'
-            }).then(async (result) => {
-                if (result.isConfirmed) {
-                    const res = await callAppsScript('deleteUser', { email: email });
-                    if (res) {
-                        showSuccess('User Deleted!');
-                        await loadTeamData(); // Refresh data
-                    }
-                }
-            });
-        }
-
-        // ===== EVENT LISTENERS =====
         document.addEventListener('DOMContentLoaded', () => {
-            
-            // Panggil Google Auth loader
-            onLoadGoogleApi();
-            
-            // Navigasi SPA
-            document.querySelectorAll('.nav-link').forEach(link => {
+            // Cek status login saat memuat
+            checkLoginState();
+
+            // Listener form login
+            if (loginForm) {
+                loginForm.addEventListener('submit', handleLoginSubmit);
+            }
+
+            // Listener tombol logout
+            if (logoutButton) {
+                logoutButton.addEventListener('click', handleLogout);
+            }
+
+            // Listener link navigasi
+            navLinks.forEach(link => {
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
-                    const pageId = e.currentTarget.getAttribute('href').substring(1);
-                    loadPage(pageId);
-                    
-                    // Tutup sidebar di mobile
-                    document.getElementById('sidebar').classList.add('-translate-x-full');
+                    const pageId = e.currentTarget.dataset.page;
+                    navigateTo(pageId);
                 });
             });
-
-            // Tombol Logout
-            document.getElementById('signout-button').addEventListener('click', signOut);
-
-            // Tombol Dark Mode
-            document.getElementById('toggle-dark-mode').addEventListener('click', () => {
-                document.documentElement.classList.toggle('dark');
-                // Re-render chart dengan warna yang benar
-                loadPage('dashboard');
-            });
             
-            // Tombol "Add New"
-            document.getElementById('btn-add-new').addEventListener('click', () => {
-                const currentPage = document.querySelector('.page-content:not(.hidden)').id;
-                if (currentPage === 'page-scripts') {
-                    showAddScriptModal();
-                } else if (currentPage === 'page-team') {
-                    showAddTeamMemberModal();
-                }
-                // Tambahkan logic untuk halaman lain
-            });
-            
-            // Tombol Add Member di halaman Team
-            document.getElementById('btn-add-member').addEventListener('click', showAddTeamMemberModal);
-
-            // Tombol Mobile Menu
-            document.getElementById('mobile-menu-button').addEventListener('click', () => {
-                document.getElementById('sidebar').classList.toggle('-translate-x-full');
-            });
-            
+            // Listener untuk upload CSV
+            const csvUpload = document.getElementById('csv-upload');
+            if(csvUpload) {
+                csvUpload.addEventListener('change', handleCsvUpload);
+            }
         });
+        
+        
+        // ========================================================================
+        // FUNGSI TAMBAHAN (CSV UPLOAD)
+        // ========================================================================
+        
+        function handleCsvUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const text = e.target.result;
+                // Kirim teks CSV ke Apps Script untuk diproses
+                const data = await fetchApi('importPerformanceCSV', { csvData: text });
+                if (data) {
+                    showToast('Data CSV berhasil diimpor');
+                    loadPerformanceData();
+                    loadDashboardData();
+                }
+            };
+            reader.readAsText(file);
+            // Reset input file agar bisa upload file yang sama lagi
+            event.target.value = null;
+        }
 
     </script>
 </body>
