@@ -49,9 +49,9 @@
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-semibold">Calendar View</h3>
                     <div class="flex gap-2">
-                        <button onclick="previousMonth()" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Previous</button>
+                        <button onclick="previousMonth()" class="px-4 py-2 border rounded-lg hover:bg-gray-50">‹ Previous</button>
                         <span id="currentMonth" class="px-4 py-2 font-semibold"></span>
-                        <button onclick="nextMonth()" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Next</button>
+                        <button onclick="nextMonth()" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Next ›</button>
                     </div>
                 </div>
                 <div id="calendar" class="grid grid-cols-7 gap-2">
@@ -72,7 +72,7 @@
     <!-- Schedule Modal -->
     <div id="scheduleModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div class="bg-white rounded-lg p-8 max-w-lg w-full">
-            <h3 class="text-2xl font-bold mb-6">Schedule Content</h3>
+            <h3 class="text-2xl font-bold mb-6" id="modalTitle">Schedule Content</h3>
             
             <div class="space-y-4">
                 <div>
@@ -105,8 +105,9 @@
                 </div>
                 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Post Link (after posting)</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Post Link (optional)</label>
                     <input type="url" id="postLink" placeholder="https://..." class="w-full px-4 py-2 border rounded-lg">
+                    <p class="text-xs text-gray-500 mt-1">Add after posting to social media</p>
                 </div>
             </div>
 
@@ -132,6 +133,7 @@
         
         let currentDate = new Date();
         let schedules = [];
+        let editingId = null;
 
         async function loadSchedules() {
             try {
@@ -157,7 +159,8 @@
             let calendarHTML = '';
             
             // Day headers
-            ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(day => {
+            const dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+            dayNames.forEach(day => {
                 calendarHTML += `<div class="text-center font-semibold text-gray-600 py-2">${day}</div>`;
             });
             
@@ -167,19 +170,28 @@
             }
             
             // Days with schedules
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 const daySchedules = schedules.filter(s => s.scheduled_date === dateStr);
                 
+                const currentDay = new Date(year, month, day);
+                const isToday = currentDay.getTime() === today.getTime();
+                const isPast = currentDay < today;
+                
                 calendarHTML += `
-                    <div class="p-2 border border-gray-100 min-h-[80px] ${daySchedules.length > 0 ? 'bg-purple-50' : ''}">
-                        <div class="font-semibold text-gray-700">${day}</div>
-                        ${daySchedules.map(s => `
-                            <div class="text-xs bg-purple-600 text-white rounded px-1 mt-1 truncate" 
-                                 title="${s.platform}: ${s.content_title}">
-                                ${s.platform}
+                    <div class="p-2 border border-gray-100 min-h-[100px] ${daySchedules.length > 0 ? 'bg-purple-50' : ''} ${isToday ? 'ring-2 ring-purple-600' : ''} ${isPast ? 'bg-gray-50' : ''}">
+                        <div class="font-semibold text-gray-700 mb-1 ${isToday ? 'text-purple-600' : ''}">${day}</div>
+                        ${daySchedules.slice(0, 3).map(s => `
+                            <div class="text-xs bg-purple-600 text-white rounded px-2 py-1 mb-1 truncate cursor-pointer hover:bg-purple-700" 
+                                 onclick="editSchedule('${s.id}')"
+                                 title="${s.platform}: ${s.content_title} at ${s.scheduled_time}">
+                                ${s.scheduled_time} ${getPlatformIcon(s.platform)}
                             </div>
                         `).join('')}
+                        ${daySchedules.length > 3 ? `<div class="text-xs text-gray-500">+${daySchedules.length - 3} more</div>` : ''}
                     </div>
                 `;
             }
@@ -187,26 +199,41 @@
             document.getElementById('calendar').innerHTML = calendarHTML;
         }
 
+        function getPlatformIcon(platform) {
+            const icons = {
+                youtube: '📺',
+                instagram: '📸',
+                tiktok: '🎵',
+                facebook: '👥',
+                twitter: '🐦'
+            };
+            return icons[platform] || '📱';
+        }
+
         function renderUpcoming() {
             const today = new Date().toISOString().split('T')[0];
             const upcoming = schedules
                 .filter(s => s.scheduled_date >= today && s.status === 'scheduled')
-                .sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date))
+                .sort((a, b) => {
+                    const dateCompare = a.scheduled_date.localeCompare(b.scheduled_date);
+                    if (dateCompare !== 0) return dateCompare;
+                    return a.scheduled_time.localeCompare(b.scheduled_time);
+                })
                 .slice(0, 10);
             
             const container = document.getElementById('upcomingSchedules');
             
             if (upcoming.length === 0) {
-                container.innerHTML = '<p class="text-gray-500">No upcoming posts</p>';
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">No upcoming posts</p>';
                 return;
             }
             
             container.innerHTML = upcoming.map(schedule => `
-                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg border hover:shadow-md transition">
                     <div class="flex-1">
-                        <h4 class="font-semibold text-gray-800">${schedule.content_title}</h4>
-                        <p class="text-sm text-gray-600">
-                            <span class="font-medium">${schedule.platform}</span> • 
+                        <h4 class="font-semibold text-gray-800">${escapeHtml(schedule.content_title)}</h4>
+                        <p class="text-sm text-gray-600 mt-1">
+                            <span class="font-medium">${getPlatformIcon(schedule.platform)} ${schedule.platform}</span> • 
                             ${formatDate(schedule.scheduled_date)} at ${schedule.scheduled_time}
                         </p>
                     </div>
@@ -217,7 +244,11 @@
                         </button>
                         <button onclick="markPosted('${schedule.id}')" 
                                 class="px-3 py-1 text-sm bg-green-100 text-green-600 rounded hover:bg-green-200">
-                            Mark Posted
+                            Posted
+                        </button>
+                        <button onclick="deleteSchedule('${schedule.id}')" 
+                                class="px-3 py-1 text-sm bg-red-100 text-red-600 rounded hover:bg-red-200">
+                            Delete
                         </button>
                     </div>
                 </div>
@@ -225,17 +256,71 @@
         }
 
         async function openScheduleModal() {
-            // Load completed content
+            editingId = null;
+            
+            showLoading('Loading content...');
+            try {
+                const result = await apiCall('getProduction', { status: 'completed' });
+                const content = result.production || [];
+                hideLoading();
+                
+                if (content.length === 0) {
+                    showWarning('No completed content available. Please complete production first.');
+                    return;
+                }
+                
+                const select = document.getElementById('selectContent');
+                select.innerHTML = '<option value="">-- Select Content --</option>';
+                
+                content.forEach(c => {
+                    const option = document.createElement('option');
+                    option.value = c.id;
+                    option.textContent = c.script_title;
+                    select.appendChild(option);
+                });
+                
+                document.getElementById('modalTitle').textContent = 'Schedule Content';
+                document.getElementById('scheduleDate').value = '';
+                document.getElementById('scheduleTime').value = '';
+                document.getElementById('postLink').value = '';
+                document.getElementById('platform').value = 'youtube';
+                document.getElementById('selectContent').disabled = false;
+                
+                document.getElementById('scheduleModal').classList.remove('hidden');
+                
+            } catch (error) {
+                hideLoading();
+                showError('Failed to load content');
+            }
+        }
+
+        async function editSchedule(id) {
+            const schedule = schedules.find(s => s.id === id);
+            if (!schedule) return;
+            
+            editingId = id;
+            
             const result = await apiCall('getProduction', { status: 'completed' });
             const content = result.production || [];
             
             const select = document.getElementById('selectContent');
-            select.innerHTML = '<option value="">-- Select Content --</option>' +
-                content.map(c => `<option value="${c.id}">${c.script_title}</option>`).join('');
+            select.innerHTML = '<option value="">-- Select Content --</option>';
             
-            document.getElementById('scheduleDate').value = '';
-            document.getElementById('scheduleTime').value = '';
-            document.getElementById('postLink').value = '';
+            content.forEach(c => {
+                const option = document.createElement('option');
+                option.value = c.id;
+                option.textContent = c.script_title;
+                if (c.id === schedule.content_id) option.selected = true;
+                select.appendChild(option);
+            });
+            
+            document.getElementById('modalTitle').textContent = 'Edit Schedule';
+            document.getElementById('scheduleDate').value = schedule.scheduled_date;
+            document.getElementById('scheduleTime').value = schedule.scheduled_time;
+            document.getElementById('postLink').value = schedule.post_link || '';
+            document.getElementById('platform').value = schedule.platform;
+            document.getElementById('selectContent').disabled = true;
+            
             document.getElementById('scheduleModal').classList.remove('hidden');
         }
 
@@ -244,34 +329,58 @@
             const platform = document.getElementById('platform').value;
             const date = document.getElementById('scheduleDate').value;
             const time = document.getElementById('scheduleTime').value;
-            const postLink = document.getElementById('postLink').value;
+            const postLink = document.getElementById('postLink').value.trim();
 
-            if (!contentId || !date || !time) {
-                showError('Please fill all required fields');
+            if (!editingId && !contentId) {
+                showError('Please select content');
                 return;
             }
 
-            showLoading();
+            if (!date || !time) {
+                showError('Please fill date and time');
+                return;
+            }
+
+            // Validate date is not in the past
+            const scheduleDateTime = new Date(`${date}T${time}`);
+            const now = new Date();
+            if (!editingId && scheduleDateTime < now) {
+                showError('Cannot schedule in the past');
+                return;
+            }
+
+            if (postLink && !isValidURL(postLink)) {
+                showError('Please enter a valid URL for post link');
+                return;
+            }
+
+            showLoading('Saving...');
 
             try {
-                const result = await apiCall('createSchedule', {
-                    contentId, platform, date, time, postLink
-                });
+                const action = editingId ? 'updateSchedule' : 'createSchedule';
+                const data = { contentId, platform, date, time, postLink };
+                if (editingId) data.id = editingId;
+
+                const result = await apiCall(action, data);
                 
                 if (result.success) {
-                    showSuccess('Schedule created');
+                    hideLoading();
+                    showSuccess(editingId ? 'Schedule updated' : 'Schedule created');
                     closeScheduleModal();
                     loadSchedules();
                 } else {
-                    showError(result.message);
+                    hideLoading();
+                    showError(result.message || 'Failed to save schedule');
                 }
             } catch (error) {
+                hideLoading();
                 showError('Failed to save schedule');
             }
         }
 
         function closeScheduleModal() {
             document.getElementById('scheduleModal').classList.add('hidden');
+            editingId = null;
         }
 
         function previousMonth() {
@@ -287,23 +396,76 @@
         async function markPosted(id) {
             const { value: postLink } = await Swal.fire({
                 title: 'Mark as Posted',
-                input: 'url',
-                inputLabel: 'Post URL',
-                inputPlaceholder: 'https://...'
+                html: `
+                    <input id="swal-input-link" class="swal2-input" placeholder="Post URL (https://...)">
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Mark as Posted',
+                confirmButtonColor: '#7c3aed',
+                preConfirm: () => {
+                    const link = document.getElementById('swal-input-link').value;
+                    if (link && !isValidURL(link)) {
+                        Swal.showValidationMessage('Please enter a valid URL');
+                        return false;
+                    }
+                    return link;
+                }
             });
 
-            if (postLink) {
+            if (postLink !== undefined) {
+                showLoading('Updating...');
                 try {
-                    await apiCall('updateSchedule', { id, status: 'posted', postLink });
-                    showSuccess('Marked as posted');
-                    loadSchedules();
+                    const result = await apiCall('updateSchedule', { 
+                        id, 
+                        status: 'posted', 
+                        postLink: postLink || '' 
+                    });
+                    
+                    hideLoading();
+                    
+                    if (result.success) {
+                        showSuccess('Marked as posted');
+                        loadSchedules();
+                    } else {
+                        showError(result.message || 'Failed to update');
+                    }
                 } catch (error) {
-                    showError('Failed to update');
+                    hideLoading();
+                    showError('Failed to update schedule');
                 }
             }
         }
 
+        async function deleteSchedule(id) {
+            const confirmed = await confirmAction(
+                'Are you sure you want to delete this schedule?',
+                'Yes, Delete'
+            );
+            
+            if (!confirmed) return;
+            
+            showLoading('Deleting...');
+            try {
+                const result = await apiCall('deleteSchedule', { id });
+                hideLoading();
+                
+                if (result.success) {
+                    showSuccess('Schedule deleted');
+                    loadSchedules();
+                } else {
+                    showError(result.message || 'Failed to delete');
+                }
+            } catch (error) {
+                hideLoading();
+                showError('Failed to delete schedule');
+            }
+        }
+
+        // Load schedules on page load
         loadSchedules();
+        
+        // Auto-refresh every 60 seconds
+        setInterval(loadSchedules, 60000);
     </script>
 </body>
 </html>
