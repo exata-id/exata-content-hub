@@ -8,7 +8,6 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="bg-gray-50">
-    <!-- Navigation -->
     <nav class="bg-white shadow-lg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
@@ -24,31 +23,19 @@
     </nav>
 
     <div class="flex">
-        <!-- Sidebar -->
         <aside class="w-64 bg-white h-screen shadow-lg">
             <nav class="mt-8">
-                <a href="dashboard.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
-                    <span>Dashboard</span>
-                </a>
+                <a href="dashboard.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">Dashboard</a>
                 <a href="scripts.html" class="flex items-center px-6 py-3 bg-purple-50 text-purple-600 border-r-4 border-purple-600">
                     <span class="font-semibold">Script Management</span>
                 </a>
-                <a href="production.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
-                    <span>Content Production</span>
-                </a>
-                <a href="scheduling.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
-                    <span>Scheduling</span>
-                </a>
-                <a href="analytics.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
-                    <span>Analytics</span>
-                </a>
-                <a href="team.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
-                    <span>Team Management</span>
-                </a>
+                <a href="production.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">Content Production</a>
+                <a href="scheduling.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">Scheduling</a>
+                <a href="analytics.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">Analytics</a>
+                <a href="team.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">Team Management</a>
             </nav>
         </aside>
 
-        <!-- Main Content -->
         <main class="flex-1 p-8">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold text-gray-800">Script Management</h2>
@@ -67,7 +54,7 @@
                     <option value="revision">Needs Revision</option>
                 </select>
                 <input type="text" id="searchInput" placeholder="Search scripts..." 
-                    class="flex-1 px-4 py-2 border rounded-lg" onkeyup="loadScripts()">
+                    class="flex-1 px-4 py-2 border rounded-lg" onkeyup="debounceSearch()">
             </div>
 
             <!-- Scripts Table -->
@@ -78,6 +65,7 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Creator</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Version</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Submitted</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                         </tr>
@@ -92,32 +80,34 @@
 
     <!-- Create/Edit Modal -->
     <div id="scriptModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-8 max-w-2xl w-full max-h-screen overflow-y-auto">
+        <div class="bg-white rounded-lg p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <h3 class="text-2xl font-bold mb-6" id="modalTitle">New Script</h3>
             
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Title</label>
-                    <input type="text" id="scriptTitle" class="w-full px-4 py-2 border rounded-lg">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Title *</label>
+                    <input type="text" id="scriptTitle" class="w-full px-4 py-2 border rounded-lg" placeholder="Enter script title...">
                 </div>
                 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Content</label>
-                    <textarea id="scriptContent" rows="10" class="w-full px-4 py-2 border rounded-lg"></textarea>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Content *</label>
+                    <textarea id="scriptContent" rows="15" class="w-full px-4 py-2 border rounded-lg font-mono text-sm" placeholder="Write your script here..."></textarea>
+                    <p class="text-xs text-gray-500 mt-1"><span id="wordCount">0</span> words</p>
                 </div>
                 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
                     <select id="scriptStatus" class="w-full px-4 py-2 border rounded-lg">
-                        <option value="draft">Draft</option>
+                        <option value="draft">Save as Draft</option>
                         <option value="pending">Submit for Review</option>
                     </select>
+                    <p class="text-xs text-gray-500 mt-1">Submit for review when ready for manager approval</p>
                 </div>
             </div>
 
             <div class="flex gap-4 mt-6">
                 <button onclick="saveScript()" class="flex-1 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700">
-                    Save
+                    Save Script
                 </button>
                 <button onclick="closeModal()" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300">
                     Cancel
@@ -136,6 +126,17 @@
         document.getElementById('userName').textContent = userData.name;
         
         let editingScriptId = null;
+        let allScripts = [];
+        
+        // Word count
+        document.getElementById('scriptContent').addEventListener('input', function() {
+            const text = this.value.trim();
+            const words = text ? text.split(/\s+/).length : 0;
+            document.getElementById('wordCount').textContent = words;
+        });
+
+        // Debounce search
+        const debounceSearch = debounce(() => loadScripts(), 500);
 
         async function loadScripts() {
             const status = document.getElementById('statusFilter').value;
@@ -143,7 +144,8 @@
             
             try {
                 const result = await apiCall('getScripts', { status, search });
-                displayScripts(result.scripts || []);
+                allScripts = result.scripts || [];
+                displayScripts(allScripts);
             } catch (error) {
                 showError('Failed to load scripts');
             }
@@ -153,36 +155,34 @@
             const tbody = document.getElementById('scriptsTable');
             
             if (scripts.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">No scripts found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No scripts found</td></tr>';
                 return;
             }
 
-            tbody.innerHTML = scripts.map(script => `
-                <tr>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-medium text-gray-900">${script.title}</div>
+            tbody.innerHTML = scripts.map(script => {
+                const canEdit = script.creator_id === userData.id || userData.role === 'admin' || userData.role === 'manager';
+                const canDelete = script.creator_id === userData.id || userData.role === 'admin';
+                const canApprove = (userData.role === 'admin' || userData.role === 'manager') && script.status === 'pending';
+                
+                return `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4">
+                        <div class="text-sm font-medium text-gray-900">${escapeHtml(script.title)}</div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${script.creator_name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(script.creator_name)}</td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 py-1 text-xs font-semibold rounded-full 
-                            ${script.status === 'approved' ? 'bg-green-100 text-green-800' : 
-                              script.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                              script.status === 'revision' ? 'bg-red-100 text-red-800' : 
-                              'bg-gray-100 text-gray-800'}">
-                            ${script.status}
-                        </span>
+                        ${getStatusBadge(script.status)}
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDate(script.submitted_at)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">v${script.version || 1}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDateShort(script.submitted_at)}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button onclick="viewScript('${script.id}')" class="text-blue-600 hover:text-blue-900 mr-3">View</button>
-                        ${script.creator_id === userData.id || userData.role === 'admin' ? 
-                            `<button onclick="editScript('${script.id}')" class="text-purple-600 hover:text-purple-900 mr-3">Edit</button>
-                             <button onclick="deleteScript('${script.id}')" class="text-red-600 hover:text-red-900">Delete</button>` : ''}
-                        ${userData.role === 'admin' || userData.role === 'manager' ? 
-                            `<button onclick="approveScript('${script.id}')" class="text-green-600 hover:text-green-900 ml-3">Approve</button>` : ''}
+                        ${canEdit ? `<button onclick="editScript('${script.id}')" class="text-purple-600 hover:text-purple-900 mr-3">Edit</button>` : ''}
+                        ${canDelete ? `<button onclick="deleteScript('${script.id}')" class="text-red-600 hover:text-red-900 mr-3">Delete</button>` : ''}
+                        ${canApprove ? `<button onclick="reviewScript('${script.id}')" class="text-green-600 hover:text-green-900">Review</button>` : ''}
                     </td>
                 </tr>
-            `).join('');
+            `}).join('');
         }
 
         function openCreateModal() {
@@ -191,7 +191,33 @@
             document.getElementById('scriptTitle').value = '';
             document.getElementById('scriptContent').value = '';
             document.getElementById('scriptStatus').value = 'draft';
+            document.getElementById('wordCount').textContent = '0';
             document.getElementById('scriptModal').classList.remove('hidden');
+        }
+
+        async function viewScript(id) {
+            const script = allScripts.find(s => s.id === id);
+            if (!script) return;
+            
+            Swal.fire({
+                title: script.title,
+                html: `
+                    <div class="text-left space-y-3">
+                        <div><strong>Creator:</strong> ${escapeHtml(script.creator_name)}</div>
+                        <div><strong>Status:</strong> ${getStatusBadge(script.status)}</div>
+                        <div><strong>Version:</strong> v${script.version || 1}</div>
+                        <div><strong>Submitted:</strong> ${formatDateTime(script.submitted_at)}</div>
+                        ${script.approved_by ? `<div><strong>Approved by:</strong> ${escapeHtml(script.approved_by_name)} on ${formatDateTime(script.approved_at)}</div>` : ''}
+                        ${script.revision_notes ? `<div class="bg-yellow-50 p-3 rounded"><strong>Revision Notes:</strong><br>${escapeHtml(script.revision_notes)}</div>` : ''}
+                        <div class="mt-4">
+                            <strong>Content:</strong>
+                            <div class="mt-2 p-4 bg-gray-50 rounded max-h-64 overflow-y-auto text-sm whitespace-pre-wrap font-mono">${escapeHtml(script.content)}</div>
+                        </div>
+                    </div>
+                `,
+                width: '800px',
+                confirmButtonColor: '#7c3aed'
+            });
         }
 
         async function editScript(id) {
@@ -199,11 +225,20 @@
                 const result = await apiCall('getScripts', { id });
                 const script = result.scripts[0];
                 
+                if (!script) {
+                    showError('Script not found');
+                    return;
+                }
+                
                 editingScriptId = id;
                 document.getElementById('modalTitle').textContent = 'Edit Script';
                 document.getElementById('scriptTitle').value = script.title;
                 document.getElementById('scriptContent').value = script.content;
                 document.getElementById('scriptStatus').value = script.status;
+                
+                const words = script.content.trim().split(/\s+/).length;
+                document.getElementById('wordCount').textContent = words;
+                
                 document.getElementById('scriptModal').classList.remove('hidden');
             } catch (error) {
                 showError('Failed to load script');
@@ -211,16 +246,26 @@
         }
 
         async function saveScript() {
-            const title = document.getElementById('scriptTitle').value;
-            const content = document.getElementById('scriptContent').value;
+            const title = document.getElementById('scriptTitle').value.trim();
+            const content = document.getElementById('scriptContent').value.trim();
             const status = document.getElementById('scriptStatus').value;
 
-            if (!title || !content) {
-                showError('Please fill all fields');
+            if (!title) {
+                showError('Please enter a title');
                 return;
             }
 
-            showLoading();
+            if (!content) {
+                showError('Please enter script content');
+                return;
+            }
+
+            if (content.length < 50) {
+                showError('Script content is too short (minimum 50 characters)');
+                return;
+            }
+
+            showLoading('Saving...');
 
             try {
                 const action = editingScriptId ? 'updateScript' : 'createScript';
@@ -229,46 +274,144 @@
 
                 const result = await apiCall(action, data);
                 
+                hideLoading();
+                
                 if (result.success) {
-                    showSuccess('Script saved successfully');
+                    showSuccess(editingScriptId ? 'Script updated' : 'Script created');
                     closeModal();
                     loadScripts();
                 } else {
                     showError(result.message || 'Failed to save script');
                 }
             } catch (error) {
+                hideLoading();
                 showError('Failed to save script');
             }
         }
 
         async function deleteScript(id) {
-            const confirm = await Swal.fire({
-                title: 'Delete Script?',
-                text: 'This action cannot be undone',
-                icon: 'warning',
+            const script = allScripts.find(s => s.id === id);
+            if (!script) return;
+            
+            const confirmed = await confirmAction(
+                `Are you sure you want to delete "${script.title}"? This action cannot be undone.`,
+                'Yes, Delete'
+            );
+
+            if (!confirmed) return;
+
+            showLoading('Deleting...');
+            
+            try {
+                const result = await apiCall('deleteScript', { id });
+                hideLoading();
+                
+                if (result.success) {
+                    showSuccess('Script deleted');
+                    loadScripts();
+                } else {
+                    showError(result.message || 'Failed to delete script');
+                }
+            } catch (error) {
+                hideLoading();
+                showError('Failed to delete script');
+            }
+        }
+
+        async function reviewScript(id) {
+            const script = allScripts.find(s => s.id === id);
+            if (!script) return;
+            
+            const { value: formValues } = await Swal.fire({
+                title: 'Review Script',
+                html: `
+                    <div class="text-left space-y-4">
+                        <div>
+                            <strong>Title:</strong> ${escapeHtml(script.title)}
+                        </div>
+                        <div>
+                            <strong>Creator:</strong> ${escapeHtml(script.creator_name)}
+                        </div>
+                        <div class="mt-4">
+                            <strong>Content Preview:</strong>
+                            <div class="mt-2 p-4 bg-gray-50 rounded max-h-48 overflow-y-auto text-sm whitespace-pre-wrap font-mono">${escapeHtml(script.content.substring(0, 500))}${script.content.length > 500 ? '...' : ''}</div>
+                        </div>
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium mb-2">Notes (optional):</label>
+                            <textarea id="review-notes" class="swal2-textarea w-full" placeholder="Add review notes..."></textarea>
+                        </div>
+                    </div>
+                `,
+                showDenyButton: true,
                 showCancelButton: true,
-                confirmButtonColor: '#d33',
-                confirmButtonText: 'Yes, delete it'
+                confirmButtonText: 'Approve',
+                denyButtonText: 'Request Revision',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#10b981',
+                denyButtonColor: '#ef4444',
+                width: '700px',
+                preConfirm: () => {
+                    return {
+                        action: 'approve',
+                        notes: document.getElementById('review-notes').value
+                    };
+                },
+                preDeny: () => {
+                    const notes = document.getElementById('review-notes').value.trim();
+                    if (!notes) {
+                        Swal.showValidationMessage('Please provide revision notes');
+                        return false;
+                    }
+                    return {
+                        action: 'reject',
+                        notes: notes
+                    };
+                }
             });
 
-            if (confirm.isConfirmed) {
+            if (formValues) {
+                showLoading(formValues.action === 'approve' ? 'Approving...' : 'Sending revision request...');
+                
                 try {
-                    const result = await apiCall('deleteScript', { id });
+                    const action = formValues.action === 'approve' ? 'approveScript' : 'rejectScript';
+                    const result = await apiCall(action, { 
+                        id, 
+                        notes: formValues.notes 
+                    });
+                    
+                    hideLoading();
+                    
                     if (result.success) {
-                        showSuccess('Script deleted');
+                        showSuccess(formValues.action === 'approve' ? 'Script approved!' : 'Revision requested');
                         loadScripts();
+                    } else {
+                        showError(result.message || 'Failed to process review');
                     }
                 } catch (error) {
-                    showError('Failed to delete script');
+                    hideLoading();
+                    showError('Failed to process review');
                 }
             }
         }
 
         function closeModal() {
             document.getElementById('scriptModal').classList.add('hidden');
+            editingScriptId = null;
         }
 
+        // Load scripts on page load
         loadScripts();
+        
+        // Auto-refresh every 60 seconds
+        setInterval(loadScripts, 60000);
+        
+        // Keyboard shortcut: Ctrl+N for new script
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'n') {
+                e.preventDefault();
+                openCreateModal();
+            }
+        });
     </script>
 </body>
 </html>
