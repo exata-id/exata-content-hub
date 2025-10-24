@@ -8,7 +8,6 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="bg-gray-50">
-    <!-- Navigation (same as scripts.html) -->
     <nav class="bg-white shadow-lg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
@@ -24,31 +23,19 @@
     </nav>
 
     <div class="flex">
-        <!-- Sidebar (same navigation) -->
         <aside class="w-64 bg-white h-screen shadow-lg">
             <nav class="mt-8">
-                <a href="dashboard.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
-                    <span>Dashboard</span>
-                </a>
-                <a href="scripts.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
-                    <span>Script Management</span>
-                </a>
+                <a href="dashboard.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">Dashboard</a>
+                <a href="scripts.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">Script Management</a>
                 <a href="production.html" class="flex items-center px-6 py-3 bg-purple-50 text-purple-600 border-r-4 border-purple-600">
                     <span class="font-semibold">Content Production</span>
                 </a>
-                <a href="scheduling.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
-                    <span>Scheduling</span>
-                </a>
-                <a href="analytics.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
-                    <span>Analytics</span>
-                </a>
-                <a href="team.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
-                    <span>Team Management</span>
-                </a>
+                <a href="scheduling.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">Scheduling</a>
+                <a href="analytics.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">Analytics</a>
+                <a href="team.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">Team Management</a>
             </nav>
         </aside>
 
-        <!-- Main Content -->
         <main class="flex-1 p-8">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold text-gray-800">Content Production</h2>
@@ -64,8 +51,9 @@
                     <h3 class="font-semibold text-gray-700 mb-4 flex items-center">
                         <span class="w-3 h-3 bg-yellow-500 rounded-full mr-2"></span>
                         In Progress
+                        <span id="inProgressCount" class="ml-2 bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">0</span>
                     </h3>
-                    <div id="inProgressColumn" class="space-y-3">
+                    <div id="inProgressColumn" class="space-y-3 min-h-[200px]">
                         <!-- Cards will be loaded here -->
                     </div>
                 </div>
@@ -75,8 +63,9 @@
                     <h3 class="font-semibold text-gray-700 mb-4 flex items-center">
                         <span class="w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
                         In Review
+                        <span id="reviewCount" class="ml-2 bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">0</span>
                     </h3>
-                    <div id="reviewColumn" class="space-y-3">
+                    <div id="reviewColumn" class="space-y-3 min-h-[200px]">
                         <!-- Cards will be loaded here -->
                     </div>
                 </div>
@@ -86,8 +75,9 @@
                     <h3 class="font-semibold text-gray-700 mb-4 flex items-center">
                         <span class="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
                         Completed
+                        <span id="completedCount" class="ml-2 bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">0</span>
                     </h3>
-                    <div id="completedColumn" class="space-y-3">
+                    <div id="completedColumn" class="space-y-3 min-h-[200px]">
                         <!-- Cards will be loaded here -->
                     </div>
                 </div>
@@ -97,8 +87,8 @@
 
     <!-- Production Modal -->
     <div id="productionModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-8 max-w-2xl w-full">
-            <h3 class="text-2xl font-bold mb-6">Production Details</h3>
+        <div class="bg-white rounded-lg p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <h3 class="text-2xl font-bold mb-6" id="modalTitle">Production Details</h3>
             
             <div class="space-y-4">
                 <div>
@@ -111,16 +101,17 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Media Link</label>
                     <input type="url" id="mediaLink" placeholder="https://..." class="w-full px-4 py-2 border rounded-lg">
+                    <p class="text-xs text-gray-500 mt-1">Link to video/media file (Google Drive, Dropbox, etc.)</p>
                 </div>
                 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Progress %</label>
-                    <input type="number" id="progress" min="0" max="100" value="0" class="w-full px-4 py-2 border rounded-lg">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Progress: <span id="progressValue">0</span>%</label>
+                    <input type="range" id="progress" min="0" max="100" value="0" class="w-full" oninput="updateProgressValue()">
                 </div>
                 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Editor Notes</label>
-                    <textarea id="editorNotes" rows="3" class="w-full px-4 py-2 border rounded-lg"></textarea>
+                    <textarea id="editorNotes" rows="3" class="w-full px-4 py-2 border rounded-lg" placeholder="Add notes about the production..."></textarea>
                 </div>
                 
                 <div>
@@ -154,11 +145,13 @@
         document.getElementById('userName').textContent = userData.name;
         
         let editingId = null;
+        let allProductionData = [];
 
         async function loadProduction() {
             try {
                 const result = await apiCall('getProduction');
-                displayProduction(result.production || []);
+                allProductionData = result.production || [];
+                displayProduction(allProductionData);
             } catch (error) {
                 showError('Failed to load production data');
             }
@@ -168,6 +161,10 @@
             const inProgress = items.filter(i => i.status === 'in_progress');
             const review = items.filter(i => i.status === 'review');
             const completed = items.filter(i => i.status === 'completed');
+
+            document.getElementById('inProgressCount').textContent = inProgress.length;
+            document.getElementById('reviewCount').textContent = review.length;
+            document.getElementById('completedCount').textContent = completed.length;
 
             document.getElementById('inProgressColumn').innerHTML = renderCards(inProgress);
             document.getElementById('reviewColumn').innerHTML = renderCards(review);
@@ -180,51 +177,135 @@
             }
 
             return items.map(item => `
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 cursor-pointer hover:shadow-md transition"
-                     onclick="editProduction('${item.id}')">
-                    <h4 class="font-semibold text-gray-800 mb-2">${item.script_title}</h4>
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-md transition">
+                    <div class="flex justify-between items-start mb-2">
+                        <h4 class="font-semibold text-gray-800 flex-1">${escapeHtml(item.script_title)}</h4>
+                        <button onclick="showOptions('${item.id}')" class="text-gray-500 hover:text-gray-700">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="text-xs text-gray-600 mb-2">
+                        Editor: ${escapeHtml(item.editor_name)}
+                    </div>
                     <div class="text-sm text-gray-600 mb-2">
                         Progress: ${item.progress}%
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2">
-                        <div class="bg-purple-600 h-2 rounded-full" style="width: ${item.progress}%"></div>
+                        <div class="bg-purple-600 h-2 rounded-full transition-all" style="width: ${item.progress}%"></div>
                     </div>
-                    ${item.media_link ? `<a href="${item.media_link}" target="_blank" class="text-xs text-blue-600 mt-2 block">View Media</a>` : ''}
+                    ${item.media_link ? `
+                        <a href="${item.media_link}" target="_blank" class="text-xs text-blue-600 mt-2 block hover:underline">
+                            📎 View Media
+                        </a>
+                    ` : ''}
+                    ${item.editor_notes ? `
+                        <p class="text-xs text-gray-500 mt-2 italic">${truncateText(escapeHtml(item.editor_notes), 100)}</p>
+                    ` : ''}
+                    <div class="mt-3 flex gap-2">
+                        <button onclick="editProduction('${item.id}')" class="text-xs px-3 py-1 bg-blue-100 text-blue-600 rounded hover:bg-blue-200">
+                            Edit
+                        </button>
+                        <button onclick="viewDetails('${item.id}')" class="text-xs px-3 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200">
+                            Details
+                        </button>
+                    </div>
                 </div>
             `).join('');
         }
 
         async function openCreateModal() {
             editingId = null;
+            
+            // Load approved scripts
+            showLoading('Loading scripts...');
+            try {
+                const result = await apiCall('getScripts', { status: 'approved' });
+                const scripts = result.scripts || [];
+                hideLoading();
+                
+                const selectScript = document.getElementById('selectScript');
+                selectScript.innerHTML = '<option value="">-- Select Script --</option>';
+                
+                scripts.forEach(s => {
+                    const option = document.createElement('option');
+                    option.value = s.id;
+                    option.textContent = s.title;
+                    selectScript.appendChild(option);
+                });
+                
+                if (scripts.length === 0) {
+                    showWarning('No approved scripts available. Please approve scripts first.');
+                    return;
+                }
+                
+                document.getElementById('modalTitle').textContent = 'Start New Production';
+                document.getElementById('mediaLink').value = '';
+                document.getElementById('progress').value = '0';
+                document.getElementById('progressValue').textContent = '0';
+                document.getElementById('editorNotes').value = '';
+                document.getElementById('prodStatus').value = 'in_progress';
+                document.getElementById('selectScript').disabled = false;
+                
+                document.getElementById('productionModal').classList.remove('hidden');
+                
+            } catch (error) {
+                hideLoading();
+                showError('Failed to load scripts');
+            }
+        }
+
+        async function editProduction(id) {
+            const item = allProductionData.find(p => p.id === id);
+            if (!item) return;
+            
+            editingId = id;
+            
             // Load approved scripts
             const result = await apiCall('getScripts', { status: 'approved' });
             const scripts = result.scripts || [];
             
             const selectScript = document.getElementById('selectScript');
-            selectScript.innerHTML = '<option value="">-- Select Script --</option>' +
-                scripts.map(s => `<option value="${s.id}">${s.title}</option>`).join('');
+            selectScript.innerHTML = '<option value="">-- Select Script --</option>';
             
-            document.getElementById('mediaLink').value = '';
-            document.getElementById('progress').value = '0';
-            document.getElementById('editorNotes').value = '';
-            document.getElementById('prodStatus').value = 'in_progress';
+            scripts.forEach(s => {
+                const option = document.createElement('option');
+                option.value = s.id;
+                option.textContent = s.title;
+                if (s.id === item.script_id) option.selected = true;
+                selectScript.appendChild(option);
+            });
+            
+            document.getElementById('modalTitle').textContent = 'Edit Production';
+            document.getElementById('mediaLink').value = item.media_link || '';
+            document.getElementById('progress').value = item.progress || 0;
+            document.getElementById('progressValue').textContent = item.progress || 0;
+            document.getElementById('editorNotes').value = item.editor_notes || '';
+            document.getElementById('prodStatus').value = item.status;
+            document.getElementById('selectScript').disabled = true; // Can't change script after creation
             
             document.getElementById('productionModal').classList.remove('hidden');
         }
 
         async function saveProduction() {
             const scriptId = document.getElementById('selectScript').value;
-            const mediaLink = document.getElementById('mediaLink').value;
-            const progress = document.getElementById('progress').value;
-            const editorNotes = document.getElementById('editorNotes').value;
+            const mediaLink = document.getElementById('mediaLink').value.trim();
+            const progress = parseInt(document.getElementById('progress').value);
+            const editorNotes = document.getElementById('editorNotes').value.trim();
             const status = document.getElementById('prodStatus').value;
 
-            if (!scriptId) {
+            if (!editingId && !scriptId) {
                 showError('Please select a script');
                 return;
             }
 
-            showLoading();
+            if (mediaLink && !isValidURL(mediaLink)) {
+                showError('Please enter a valid URL for media link');
+                return;
+            }
+
+            showLoading('Saving...');
 
             try {
                 const action = editingId ? 'updateProduction' : 'createProduction';
@@ -234,23 +315,103 @@
                 const result = await apiCall(action, data);
                 
                 if (result.success) {
-                    showSuccess('Production updated');
+                    hideLoading();
+                    showSuccess(editingId ? 'Production updated' : 'Production started');
                     closeModal();
                     loadProduction();
                 } else {
-                    showError(result.message);
+                    hideLoading();
+                    showError(result.message || 'Failed to save');
                 }
             } catch (error) {
-                showError('Failed to save');
+                hideLoading();
+                showError('Failed to save production');
+            }
+        }
+
+        function updateProgressValue() {
+            const value = document.getElementById('progress').value;
+            document.getElementById('progressValue').textContent = value;
+        }
+
+        async function viewDetails(id) {
+            const item = allProductionData.find(p => p.id === id);
+            if (!item) return;
+            
+            Swal.fire({
+                title: item.script_title,
+                html: `
+                    <div class="text-left space-y-2">
+                        <p><strong>Editor:</strong> ${escapeHtml(item.editor_name)}</p>
+                        <p><strong>Status:</strong> ${getStatusBadge(item.status)}</p>
+                        <p><strong>Progress:</strong> ${item.progress}%</p>
+                        <p><strong>Created:</strong> ${formatDateTime(item.created_at)}</p>
+                        <p><strong>Last Updated:</strong> ${formatDateTime(item.updated_at)}</p>
+                        ${item.media_link ? `<p><strong>Media:</strong> <a href="${item.media_link}" target="_blank" class="text-blue-600">View Link</a></p>` : ''}
+                        ${item.editor_notes ? `<p><strong>Notes:</strong><br>${escapeHtml(item.editor_notes)}</p>` : ''}
+                    </div>
+                `,
+                confirmButtonColor: '#7c3aed'
+            });
+        }
+
+        async function showOptions(id) {
+            const item = allProductionData.find(p => p.id === id);
+            if (!item) return;
+            
+            const { value: action } = await Swal.fire({
+                title: 'Options',
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: 'Edit',
+                denyButtonText: 'Delete',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#7c3aed',
+                denyButtonColor: '#d33'
+            });
+            
+            if (action === true) {
+                editProduction(id);
+            } else if (action === false) {
+                await deleteProduction(id);
+            }
+        }
+
+        async function deleteProduction(id) {
+            const confirmed = await confirmAction(
+                'Are you sure you want to delete this production item?',
+                'Yes, Delete'
+            );
+            
+            if (!confirmed) return;
+            
+            showLoading('Deleting...');
+            try {
+                const result = await apiCall('deleteProduction', { id });
+                hideLoading();
+                
+                if (result.success) {
+                    showSuccess('Production deleted');
+                    loadProduction();
+                } else {
+                    showError(result.message || 'Failed to delete');
+                }
+            } catch (error) {
+                hideLoading();
+                showError('Failed to delete production');
             }
         }
 
         function closeModal() {
             document.getElementById('productionModal').classList.add('hidden');
+            editingId = null;
         }
 
+        // Load data on page load
         loadProduction();
-        setInterval(loadProduction, 30000); // Auto-refresh every 30s
+        
+        // Auto-refresh every 60 seconds
+        setInterval(loadProduction, 60000);
     </script>
 </body>
 </html>
