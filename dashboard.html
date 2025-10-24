@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Content Workflow System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-bold text-purple-600">Content Workflow</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="userName" class="text-gray-700"></span>
+                    <button onclick="logout()" class="text-red-600 hover:text-red-800">Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar & Main Content -->
+    <div class="flex">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white h-screen shadow-lg">
+            <nav class="mt-8">
+                <a href="dashboard.html" class="flex items-center px-6 py-3 bg-purple-50 text-purple-600 border-r-4 border-purple-600">
+                    <span class="font-semibold">Dashboard</span>
+                </a>
+                <a href="scripts.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
+                    <span>Script Management</span>
+                </a>
+                <a href="production.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
+                    <span>Content Production</span>
+                </a>
+                <a href="scheduling.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
+                    <span>Scheduling</span>
+                </a>
+                <a href="analytics.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
+                    <span>Analytics</span>
+                </a>
+                <a href="team.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
+                    <span>Team Management</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-8">
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm">Total Scripts</p>
+                            <h3 class="text-3xl font-bold text-gray-800" id="totalScripts">0</h3>
+                        </div>
+                        <div class="bg-blue-100 p-3 rounded-full">
+                            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm">In Production</p>
+                            <h3 class="text-3xl font-bold text-gray-800" id="inProduction">0</h3>
+                        </div>
+                        <div class="bg-yellow-100 p-3 rounded-full">
+                            <svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm">Scheduled</p>
+                            <h3 class="text-3xl font-bold text-gray-800" id="scheduled">0</h3>
+                        </div>
+                        <div class="bg-green-100 p-3 rounded-full">
+                            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm">Team Members</p>
+                            <h3 class="text-3xl font-bold text-gray-800" id="teamMembers">0</h3>
+                        </div>
+                        <div class="bg-purple-100 p-3 rounded-full">
+                            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts & Recent Activity -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Performance Chart -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Performance Overview</h3>
+                    <canvas id="performanceChart"></canvas>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Recent Activity</h3>
+                    <div id="recentActivity" class="space-y-3">
+                        <!-- Activity items will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications -->
+            <div class="mt-6 bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Notifications</h3>
+                <div id="notifications" class="space-y-2">
+                    <!-- Notifications will be loaded here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        // Check authentication
+        checkAuth();
+
+        let userData = JSON.parse(localStorage.getItem('user_data'));
+        document.getElementById('userName').textContent = userData.name;
+
+        // Load dashboard data
+        async function loadDashboard() {
+            try {
+                const stats = await apiCall('getDashboardStats');
+                
+                // Update stats
+                document.getElementById('totalScripts').textContent = stats.totalScripts || 0;
+                document.getElementById('inProduction').textContent = stats.inProduction || 0;
+                document.getElementById('scheduled').textContent = stats.scheduled || 0;
+                document.getElementById('teamMembers').textContent = stats.teamMembers || 0;
+
+                // Load chart
+                loadPerformanceChart(stats.performance || []);
+                
+                // Load recent activity
+                loadRecentActivity(stats.recentActivity || []);
+                
+                // Load notifications
+                loadNotifications(stats.notifications || []);
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        function loadPerformanceChart(data) {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.date) || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Engagement',
+                        data: data.map(d => d.engagement) || [12, 19, 15, 25, 22, 30],
+                        borderColor: 'rgb(147, 51, 234)',
+                        backgroundColor: 'rgba(147, 51, 234, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        function loadRecentActivity(activities) {
+            const container = document.getElementById('recentActivity');
+            if (activities.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">Belum ada aktivitas</p>';
+                return;
+            }
+
+            container.innerHTML = activities.map(activity => `
+                <div class="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <div class="flex-shrink-0 w-2 h-2 mt-2 rounded-full bg-purple-600"></div>
+                    <div class="flex-1">
+                        <p class="text-sm text-gray-800">${activity.message}</p>
+                        <p class="text-xs text-gray-500 mt-1">${activity.timestamp}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadNotifications(notifications) {
+            const container = document.getElementById('notifications');
+            if (notifications.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">Tidak ada notifikasi baru</p>';
+                return;
+            }
+
+            container.innerHTML = notifications.map(notif => `
+                <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                    <div class="flex-1">
+                        <p class="text-sm text-gray-800">${notif.message}</p>
+                        <p class="text-xs text-gray-500 mt-1">${notif.created_at}</p>
+                    </div>
+                    ${!notif.read ? '<span class="w-2 h-2 bg-blue-600 rounded-full"></span>' : ''}
+                </div>
+            `).join('');
+        }
+
+        // Animations
+        gsap.from('.bg-white', {
+            y: 20,
+            opacity: 0,
+            duration: 0.6,
+            stagger: 0.1,
+            ease: 'power2.out'
+        });
+
+        // Load data on page load
+        loadDashboard();
+
+        // Auto refresh every 30 seconds
+        setInterval(loadDashboard, 30000);
+    </script>
+</body>
+</html>

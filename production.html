@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Production - Content Workflow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation (same as scripts.html) -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-bold text-purple-600">Content Workflow</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="userName" class="text-gray-700"></span>
+                    <button onclick="logout()" class="text-red-600 hover:text-red-800">Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="flex">
+        <!-- Sidebar (same navigation) -->
+        <aside class="w-64 bg-white h-screen shadow-lg">
+            <nav class="mt-8">
+                <a href="dashboard.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
+                    <span>Dashboard</span>
+                </a>
+                <a href="scripts.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
+                    <span>Script Management</span>
+                </a>
+                <a href="production.html" class="flex items-center px-6 py-3 bg-purple-50 text-purple-600 border-r-4 border-purple-600">
+                    <span class="font-semibold">Content Production</span>
+                </a>
+                <a href="scheduling.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
+                    <span>Scheduling</span>
+                </a>
+                <a href="analytics.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
+                    <span>Analytics</span>
+                </a>
+                <a href="team.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
+                    <span>Team Management</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Content Production</h2>
+                <button onclick="openCreateModal()" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700">
+                    + Start Production
+                </button>
+            </div>
+
+            <!-- Production Board -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- In Progress -->
+                <div class="bg-white rounded-lg shadow p-4">
+                    <h3 class="font-semibold text-gray-700 mb-4 flex items-center">
+                        <span class="w-3 h-3 bg-yellow-500 rounded-full mr-2"></span>
+                        In Progress
+                    </h3>
+                    <div id="inProgressColumn" class="space-y-3">
+                        <!-- Cards will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- In Review -->
+                <div class="bg-white rounded-lg shadow p-4">
+                    <h3 class="font-semibold text-gray-700 mb-4 flex items-center">
+                        <span class="w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
+                        In Review
+                    </h3>
+                    <div id="reviewColumn" class="space-y-3">
+                        <!-- Cards will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Completed -->
+                <div class="bg-white rounded-lg shadow p-4">
+                    <h3 class="font-semibold text-gray-700 mb-4 flex items-center">
+                        <span class="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
+                        Completed
+                    </h3>
+                    <div id="completedColumn" class="space-y-3">
+                        <!-- Cards will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Production Modal -->
+    <div id="productionModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-2xl w-full">
+            <h3 class="text-2xl font-bold mb-6">Production Details</h3>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Script</label>
+                    <select id="selectScript" class="w-full px-4 py-2 border rounded-lg">
+                        <option value="">-- Select Script --</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Media Link</label>
+                    <input type="url" id="mediaLink" placeholder="https://..." class="w-full px-4 py-2 border rounded-lg">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Progress %</label>
+                    <input type="number" id="progress" min="0" max="100" value="0" class="w-full px-4 py-2 border rounded-lg">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Editor Notes</label>
+                    <textarea id="editorNotes" rows="3" class="w-full px-4 py-2 border rounded-lg"></textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                    <select id="prodStatus" class="w-full px-4 py-2 border rounded-lg">
+                        <option value="in_progress">In Progress</option>
+                        <option value="review">In Review</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex gap-4 mt-6">
+                <button onclick="saveProduction()" class="flex-1 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700">
+                    Save
+                </button>
+                <button onclick="closeModal()" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        checkAuth();
+        let userData = JSON.parse(localStorage.getItem('user_data'));
+        document.getElementById('userName').textContent = userData.name;
+        
+        let editingId = null;
+
+        async function loadProduction() {
+            try {
+                const result = await apiCall('getProduction');
+                displayProduction(result.production || []);
+            } catch (error) {
+                showError('Failed to load production data');
+            }
+        }
+
+        function displayProduction(items) {
+            const inProgress = items.filter(i => i.status === 'in_progress');
+            const review = items.filter(i => i.status === 'review');
+            const completed = items.filter(i => i.status === 'completed');
+
+            document.getElementById('inProgressColumn').innerHTML = renderCards(inProgress);
+            document.getElementById('reviewColumn').innerHTML = renderCards(review);
+            document.getElementById('completedColumn').innerHTML = renderCards(completed);
+        }
+
+        function renderCards(items) {
+            if (items.length === 0) {
+                return '<p class="text-gray-400 text-sm text-center py-8">No items</p>';
+            }
+
+            return items.map(item => `
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 cursor-pointer hover:shadow-md transition"
+                     onclick="editProduction('${item.id}')">
+                    <h4 class="font-semibold text-gray-800 mb-2">${item.script_title}</h4>
+                    <div class="text-sm text-gray-600 mb-2">
+                        Progress: ${item.progress}%
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-purple-600 h-2 rounded-full" style="width: ${item.progress}%"></div>
+                    </div>
+                    ${item.media_link ? `<a href="${item.media_link}" target="_blank" class="text-xs text-blue-600 mt-2 block">View Media</a>` : ''}
+                </div>
+            `).join('');
+        }
+
+        async function openCreateModal() {
+            editingId = null;
+            // Load approved scripts
+            const result = await apiCall('getScripts', { status: 'approved' });
+            const scripts = result.scripts || [];
+            
+            const selectScript = document.getElementById('selectScript');
+            selectScript.innerHTML = '<option value="">-- Select Script --</option>' +
+                scripts.map(s => `<option value="${s.id}">${s.title}</option>`).join('');
+            
+            document.getElementById('mediaLink').value = '';
+            document.getElementById('progress').value = '0';
+            document.getElementById('editorNotes').value = '';
+            document.getElementById('prodStatus').value = 'in_progress';
+            
+            document.getElementById('productionModal').classList.remove('hidden');
+        }
+
+        async function saveProduction() {
+            const scriptId = document.getElementById('selectScript').value;
+            const mediaLink = document.getElementById('mediaLink').value;
+            const progress = document.getElementById('progress').value;
+            const editorNotes = document.getElementById('editorNotes').value;
+            const status = document.getElementById('prodStatus').value;
+
+            if (!scriptId) {
+                showError('Please select a script');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const action = editingId ? 'updateProduction' : 'createProduction';
+                const data = { scriptId, mediaLink, progress, editorNotes, status };
+                if (editingId) data.id = editingId;
+
+                const result = await apiCall(action, data);
+                
+                if (result.success) {
+                    showSuccess('Production updated');
+                    closeModal();
+                    loadProduction();
+                } else {
+                    showError(result.message);
+                }
+            } catch (error) {
+                showError('Failed to save');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('productionModal').classList.add('hidden');
+        }
+
+        loadProduction();
+        setInterval(loadProduction, 30000); // Auto-refresh every 30s
+    </script>
+</body>
+</html>

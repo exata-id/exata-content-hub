@@ -1,0 +1,415 @@
+<!-- REVISI TOTAL: analytics.html -->
+<!-- Menghapus MOCK_DATA dan menghubungkan ke API -->
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - Content Workflow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-bold text-purple-600">Content Workflow</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="userName" class="text-gray-700"></span>
+                    <button onclick="logout()" class="text-red-600 hover:text-red-800">Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="flex">
+        <aside class="w-64 bg-white h-screen shadow-lg">
+            <nav class="mt-8">
+                <a href="dashboard.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">Dashboard</a>
+                <a href="scripts.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">Script Management</a>
+                <a href="production.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">Content Production</a>
+                <a href="scheduling.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">Scheduling</a>
+                <a href="analytics.html" class="flex items-center px-6 py-3 bg-purple-50 text-purple-600 border-r-4 border-purple-600">
+                    <span class="font-semibold">Analytics</span>
+                </a>
+                <a href="team.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">Team Management</a>
+            </nav>
+        </aside>
+
+        <main class="flex-1 p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Performance Analytics</h2>
+                <div class="flex gap-2">
+                    <button onclick="openImportModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        Import CSV
+                    </button>
+                    <button onclick="openAddModal()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
+                        Add Performance
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="bg-white rounded-lg shadow p-4 mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+                <select id="platformFilter" onchange="loadAnalytics()" class="px-4 py-2 border rounded-lg">
+                    <option value="">All Platforms</option>
+                    <option value="youtube">YouTube</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="tiktok">TikTok</option>
+                    <option value="facebook">Facebook</option>
+                    <option value="twitter">Twitter/X</option>
+                </select>
+                <input type="date" id="dateFrom" onchange="loadAnalytics()" class="px-4 py-2 border rounded-lg">
+                <input type="date" id="dateTo" onchange="loadAnalytics()" class="px-4 py-2 border rounded-lg">
+                <select id="creatorFilter" onchange="loadAnalytics()" class="px-4 py-2 border rounded-lg">
+                    <option value="">All Creators</option>
+                </select>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <p class="text-gray-500 text-sm">Total Views</p>
+                    <h3 class="text-3xl font-bold text-gray-800" id="totalViews">0</h3>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <p class="text-gray-500 text-sm">Total Likes</p>
+                    <h3 class="text-3xl font-bold text-gray-800" id="totalLikes">0</h3>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <p class="text-gray-500 text-sm">Avg Engagement</p>
+                    <h3 class="text-3xl font-bold text-gray-800" id="avgEngagement">0%</h3>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <p class="text-gray-500 text-sm">Total Posts</p>
+                    <h3 class="text-3xl font-bold text-gray-800" id="totalPosts">0</h3>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold mb-4">Views Trend</h3>
+                    <canvas id="viewsTrendChart"></canvas>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold mb-4">Platform Performance</h3>
+                    <canvas id="platformChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Performance Table -->
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Content</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Platform</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Views</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Likes</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Engagement</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="performanceTable" class="bg-white divide-y divide-gray-200">
+                        <!-- Data loaded from API -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Performance Modal -->
+    <div id="addModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-lg w-full">
+            <h3 class="text-2xl font-bold mb-6">Add Performance Data</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Content (from Production)</label>
+                    <select id="contentSelect" class="w-full px-4 py-2 border rounded-lg">
+                        <option value="">-- Select Content --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Platform</label>
+                    <select id="platformSelect" class="w-full px-4 py-2 border rounded-lg">
+                        <option value="youtube">YouTube</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="twitter">Twitter/X</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="views" class="block text-sm font-medium text-gray-700 mb-2">Views</label>
+                    <input type="number" id="views" class="w-full px-4 py-2 border rounded-lg" placeholder="e.g., 15000">
+                </div>
+                <div>
+                    <label for="likes" class="block text-sm font-medium text-gray-700 mb-2">Likes</label>
+                    <input type="number" id="likes" class="w-full px-4 py-2 border rounded-lg" placeholder="e.g., 1200">
+                </div>
+                <div>
+                    <label for="comments" class="block text-sm font-medium text-gray-700 mb-2">Comments</label>
+                    <input type="number" id="comments" class="w-full px-4 py-2 border rounded-lg" placeholder="e.g., 80">
+                </div>
+                 <div>
+                    <label for="shares" class="block text-sm font-medium text-gray-700 mb-2">Shares</label>
+                    <input type="number" id="shares" class="w-full px-4 py-2 border rounded-lg" placeholder="e.g., 40">
+                </div>
+                <div>
+                    <label for="postDate" class="block text-sm font-medium text-gray-700 mb-2">Post Date</label>
+                    <input type="date" id="postDate" class="w-full px-4 py-2 border rounded-lg">
+                </div>
+            </div>
+            <div class="flex justify-end mt-6 space-x-4">
+                <button onclick="closeAddModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Cancel</button>
+                <button onclick="savePerformance()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import CSV Modal -->
+    <div id="importModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-lg w-full">
+            <h3 class="text-2xl font-bold mb-6">Import from CSV</h3>
+            <p class="text-gray-600 mb-4">
+                Pilih file CSV. Pastikan kolom: 
+                <code class="text-xs bg-gray-100 p-1 rounded">content_id</code>, 
+                <code class="text-xs bg-gray-100 p-1 rounded">platform</code>, 
+                <code class="text-xs bg-gray-100 p-1 rounded">views</code>, 
+                <code class="text-xs bg-gray-100 p-1 rounded">likes</code>, 
+                <code class="text-xs bg-gray-100 p-1 rounded">comments</code>, 
+                <code class="text-xs bg-gray-100 p-1 rounded">shares</code>, 
+                <code class="text-xs bg-gray-100 p-1 rounded">date_recorded</code> (YYYY-MM-DD).
+            </p>
+            <input type="file" id="csvFile" accept=".csv" class="w-full px-4 py-2 border rounded-lg mb-4">
+            <div class="flex justify-end space-x-4">
+                <button onclick="closeImportModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Cancel</button>
+                <button onclick="importCSV()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Import</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEMUA JS DI-LOAD DI SINI -->
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        checkAuth();
+        let userData = JSON.parse(localStorage.getItem('user_data'));
+        document.getElementById('userName').textContent = userData.name;
+
+        let viewsTrendChart, platformChart;
+        let allPerformanceData = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            populateFilters();
+            loadAnalytics();
+        });
+
+        async function populateFilters() {
+            try {
+                // Isi filter creator
+                const result = await apiCall('getTeamMembers');
+                const members = result.members || [];
+                const creatorFilter = document.getElementById('creatorFilter');
+                
+                members.forEach(creator => {
+                    const option = document.createElement('option');
+                    option.value = creator.id;
+                    option.textContent = creator.name;
+                    creatorFilter.appendChild(option);
+                });
+
+                // Isi dropdown untuk modal 'Add Performance'
+                const contentResult = await apiCall('getProduction', { status: 'completed' });
+                const content = contentResult.production || [];
+                const contentSelect = document.getElementById('contentSelect');
+                
+                content.forEach(c => {
+                    const option = document.createElement('option');
+                    option.value = c.id;
+                    option.textContent = c.script_title;
+                    contentSelect.appendChild(option);
+                });
+
+            } catch (error) {
+                showError('Failed to load filters');
+            }
+        }
+
+        async function loadAnalytics() {
+            const platform = document.getElementById('platformFilter').value;
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo = document.getElementById('dateTo').value;
+            const creator = document.getElementById('creatorFilter').value;
+
+            showLoading();
+            try {
+                const result = await apiCall('getPerformance', { platform, dateFrom, dateTo, creator });
+                allPerformanceData = result.performance || [];
+                
+                updateSummaryCards(allPerformanceData);
+                renderPerformanceTable(allPerformanceData);
+                updateCharts(allPerformanceData);
+                hideLoading();
+
+            } catch (error) {
+                showError('Failed to load performance data');
+            }
+        }
+
+        function updateSummaryCards(data) {
+            const totalViews = data.reduce((sum, item) => sum + (parseInt(item.views) || 0), 0);
+            const totalLikes = data.reduce((sum, item) => sum + (parseInt(item.likes) || 0), 0);
+            const totalPosts = data.length;
+            
+            const totalEngagementRate = data.reduce((sum, item) => {
+                return sum + (parseFloat(item.engagement_rate) || 0);
+            }, 0);
+            const avgEngagement = totalPosts > 0 ? (totalEngagementRate / totalPosts) : 0;
+
+            document.getElementById('totalViews').textContent = totalViews.toLocaleString('id-ID');
+            document.getElementById('totalLikes').textContent = totalLikes.toLocaleString('id-ID');
+            document.getElementById('totalPosts').textContent = totalPosts;
+            document.getElementById('avgEngagement').textContent = `${avgEngagement.toFixed(2)}%`;
+        }
+
+        function renderPerformanceTable(data) {
+            const tableBody = document.getElementById('performanceTable');
+            tableBody.innerHTML = '';
+            if (data.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-4">No data found.</td></tr>`;
+                return;
+            }
+            data.sort((a, b) => new Date(b.date_recorded) - new Date(a.date_recorded));
+            
+            data.forEach(item => {
+                const row = `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">${item.content_title}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${item.platform}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${(parseInt(item.views) || 0).toLocaleString('id-ID')}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${(parseInt(item.likes) || 0).toLocaleString('id-ID')}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${(parseFloat(item.engagement_rate) || 0).toFixed(2)}%</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${formatDate(item.date_recorded)}</td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            });
+        }
+
+        function updateCharts(data) {
+            if (viewsTrendChart) viewsTrendChart.destroy();
+            if (platformChart) platformChart.destroy();
+
+            // Views Trend Chart
+            const trendCtx = document.getElementById('viewsTrendChart').getContext('2d');
+            const trendData = [...data].sort((a, b) => new Date(a.date_recorded) - new Date(b.date_recorded));
+            viewsTrendChart = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: trendData.map(d => formatDate(d.date_recorded)),
+                    datasets: [{
+                        label: 'Views',
+                        data: trendData.map(d => parseInt(d.views) || 0),
+                        borderColor: 'rgb(168, 85, 247)',
+                        tension: 0.1
+                    }]
+                }
+            });
+
+            // Platform Performance Chart
+            const platformCtx = document.getElementById('platformChart').getContext('2d');
+            const platformData = data.reduce((acc, item) => {
+                acc[item.platform] = (acc[item.platform] || 0) + (parseInt(item.views) || 0);
+                return acc;
+            }, {});
+            platformChart = new Chart(platformCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(platformData),
+                    datasets: [{
+                        label: 'Views by Platform',
+                        data: Object.values(platformData),
+                        backgroundColor: ['#8B5CF6', '#EC4899', '#10B981', '#3B82F6', '#F59E0B'],
+                    }]
+                }
+            });
+        }
+
+        // Modal functions
+        const addModal = document.getElementById('addModal');
+        const importModal = document.getElementById('importModal');
+        function openAddModal() { addModal.classList.remove('hidden'); }
+        function closeAddModal() { addModal.classList.add('hidden'); }
+        function openImportModal() { importModal.classList.remove('hidden'); }
+        function closeImportModal() { importModal.classList.add('hidden'); }
+
+        async function savePerformance() {
+            const data = {
+                contentId: document.getElementById('contentSelect').value,
+                platform: document.getElementById('platformSelect').value,
+                views: document.getElementById('views').value,
+                likes: document.getElementById('likes').value,
+                comments: document.getElementById('comments').value,
+                shares: document.getElementById('shares').value,
+                date: document.getElementById('postDate').value
+            };
+
+            if (!data.contentId || !data.platform || !data.views || !data.date) {
+                showError('Content, Platform, Views, and Date are required');
+                return;
+            }
+            
+            showLoading();
+            try {
+                const result = await apiCall('addPerformance', data);
+                if (result.success) {
+                    showSuccess('Performance data added');
+                    closeAddModal();
+                    loadAnalytics();
+                } else {
+                    showError(result.message);
+                }
+            } catch (error) {
+                showError('Failed to save data');
+            }
+        }
+
+        function importCSV() {
+            const fileInput = document.getElementById('csvFile');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                showError('Please select a CSV file');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = async (e) => {
+                const csvData = e.target.result;
+                showLoading();
+                try {
+                    const result = await apiCall('importPerformanceCSV', { csvData });
+                    if (result.success) {
+                        showSuccess(`Successfully imported ${result.count} records`);
+                        closeImportModal();
+                        loadAnalytics();
+                    } else {
+                        showError(result.message);
+                    }
+                } catch (error) {
+                    showError('Failed to import file');
+                }
+            };
+            
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>

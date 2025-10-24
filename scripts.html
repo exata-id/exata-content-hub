@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Script Management - Content Workflow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-bold text-purple-600">Content Workflow</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="userName" class="text-gray-700"></span>
+                    <button onclick="logout()" class="text-red-600 hover:text-red-800">Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="flex">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white h-screen shadow-lg">
+            <nav class="mt-8">
+                <a href="dashboard.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
+                    <span>Dashboard</span>
+                </a>
+                <a href="scripts.html" class="flex items-center px-6 py-3 bg-purple-50 text-purple-600 border-r-4 border-purple-600">
+                    <span class="font-semibold">Script Management</span>
+                </a>
+                <a href="production.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
+                    <span>Content Production</span>
+                </a>
+                <a href="scheduling.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
+                    <span>Scheduling</span>
+                </a>
+                <a href="analytics.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
+                    <span>Analytics</span>
+                </a>
+                <a href="team.html" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
+                    <span>Team Management</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Script Management</h2>
+                <button onclick="openCreateModal()" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700">
+                    + New Script
+                </button>
+            </div>
+
+            <!-- Filters -->
+            <div class="bg-white rounded-lg shadow p-4 mb-6 flex gap-4">
+                <select id="statusFilter" onchange="loadScripts()" class="px-4 py-2 border rounded-lg">
+                    <option value="">All Status</option>
+                    <option value="draft">Draft</option>
+                    <option value="pending">Pending Review</option>
+                    <option value="approved">Approved</option>
+                    <option value="revision">Needs Revision</option>
+                </select>
+                <input type="text" id="searchInput" placeholder="Search scripts..." 
+                    class="flex-1 px-4 py-2 border rounded-lg" onkeyup="loadScripts()">
+            </div>
+
+            <!-- Scripts Table -->
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Creator</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Submitted</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scriptsTable" class="bg-white divide-y divide-gray-200">
+                        <!-- Data will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create/Edit Modal -->
+    <div id="scriptModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-2xl w-full max-h-screen overflow-y-auto">
+            <h3 class="text-2xl font-bold mb-6" id="modalTitle">New Script</h3>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                    <input type="text" id="scriptTitle" class="w-full px-4 py-2 border rounded-lg">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Content</label>
+                    <textarea id="scriptContent" rows="10" class="w-full px-4 py-2 border rounded-lg"></textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                    <select id="scriptStatus" class="w-full px-4 py-2 border rounded-lg">
+                        <option value="draft">Draft</option>
+                        <option value="pending">Submit for Review</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex gap-4 mt-6">
+                <button onclick="saveScript()" class="flex-1 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700">
+                    Save
+                </button>
+                <button onclick="closeModal()" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        checkAuth();
+        let userData = JSON.parse(localStorage.getItem('user_data'));
+        document.getElementById('userName').textContent = userData.name;
+        
+        let editingScriptId = null;
+
+        async function loadScripts() {
+            const status = document.getElementById('statusFilter').value;
+            const search = document.getElementById('searchInput').value;
+            
+            try {
+                const result = await apiCall('getScripts', { status, search });
+                displayScripts(result.scripts || []);
+            } catch (error) {
+                showError('Failed to load scripts');
+            }
+        }
+
+        function displayScripts(scripts) {
+            const tbody = document.getElementById('scriptsTable');
+            
+            if (scripts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">No scripts found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = scripts.map(script => `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">${script.title}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${script.creator_name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full 
+                            ${script.status === 'approved' ? 'bg-green-100 text-green-800' : 
+                              script.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                              script.status === 'revision' ? 'bg-red-100 text-red-800' : 
+                              'bg-gray-100 text-gray-800'}">
+                            ${script.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDate(script.submitted_at)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="viewScript('${script.id}')" class="text-blue-600 hover:text-blue-900 mr-3">View</button>
+                        ${script.creator_id === userData.id || userData.role === 'admin' ? 
+                            `<button onclick="editScript('${script.id}')" class="text-purple-600 hover:text-purple-900 mr-3">Edit</button>
+                             <button onclick="deleteScript('${script.id}')" class="text-red-600 hover:text-red-900">Delete</button>` : ''}
+                        ${userData.role === 'admin' || userData.role === 'manager' ? 
+                            `<button onclick="approveScript('${script.id}')" class="text-green-600 hover:text-green-900 ml-3">Approve</button>` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openCreateModal() {
+            editingScriptId = null;
+            document.getElementById('modalTitle').textContent = 'New Script';
+            document.getElementById('scriptTitle').value = '';
+            document.getElementById('scriptContent').value = '';
+            document.getElementById('scriptStatus').value = 'draft';
+            document.getElementById('scriptModal').classList.remove('hidden');
+        }
+
+        async function editScript(id) {
+            try {
+                const result = await apiCall('getScripts', { id });
+                const script = result.scripts[0];
+                
+                editingScriptId = id;
+                document.getElementById('modalTitle').textContent = 'Edit Script';
+                document.getElementById('scriptTitle').value = script.title;
+                document.getElementById('scriptContent').value = script.content;
+                document.getElementById('scriptStatus').value = script.status;
+                document.getElementById('scriptModal').classList.remove('hidden');
+            } catch (error) {
+                showError('Failed to load script');
+            }
+        }
+
+        async function saveScript() {
+            const title = document.getElementById('scriptTitle').value;
+            const content = document.getElementById('scriptContent').value;
+            const status = document.getElementById('scriptStatus').value;
+
+            if (!title || !content) {
+                showError('Please fill all fields');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const action = editingScriptId ? 'updateScript' : 'createScript';
+                const data = { title, content, status };
+                if (editingScriptId) data.id = editingScriptId;
+
+                const result = await apiCall(action, data);
+                
+                if (result.success) {
+                    showSuccess('Script saved successfully');
+                    closeModal();
+                    loadScripts();
+                } else {
+                    showError(result.message || 'Failed to save script');
+                }
+            } catch (error) {
+                showError('Failed to save script');
+            }
+        }
+
+        async function deleteScript(id) {
+            const confirm = await Swal.fire({
+                title: 'Delete Script?',
+                text: 'This action cannot be undone',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Yes, delete it'
+            });
+
+            if (confirm.isConfirmed) {
+                try {
+                    const result = await apiCall('deleteScript', { id });
+                    if (result.success) {
+                        showSuccess('Script deleted');
+                        loadScripts();
+                    }
+                } catch (error) {
+                    showError('Failed to delete script');
+                }
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('scriptModal').classList.add('hidden');
+        }
+
+        loadScripts();
+    </script>
+</body>
+</html>
