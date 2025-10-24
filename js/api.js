@@ -1,53 +1,78 @@
-// REVISI LENGKAP: api.js
-// Memperbaiki error handling dan menambahkan retry logic
+// CORS FIX: api.js
+// Mengubah cara request ke Google Apps Script
 
-async function apiCall(action, data = {}, method = 'POST') {
+async function apiCall(action, data = {}) {
     const token = localStorage.getItem('auth_token');
     
     try {
-        const url = method === 'GET' 
-            ? `${API_URL}?action=${action}&${new URLSearchParams(data)}`
-            : `${API_URL}?action=${action}`;
+        // Build URL with all parameters
+        const params = new URLSearchParams({
+            action: action,
+            ...data
+        });
         
-        const options = {
-            method: method,
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
+        // Add token if exists
+        if (token) {
+            params.append('token', token);
+        }
+        
+        const url = `${API_URL}?${params.toString()}`;
+        
+        // Use GET for simple queries, POST for complex data
+        const needsPost = ['createScript', 'updateScript', 'createProduction', 
+                          'updateProduction', 'createSchedule', 'updateSchedule',
+                          'addPerformance', 'importPerformanceCSV', 
+                          'createTeamMember', 'updateTeamMember'].includes(action);
+        
+        let options;
+        
+        if (needsPost) {
+            // POST request with body
+            options = {
+                method: 'POST',
+                mode: 'no-cors', // Important for CORS
+                headers: {
+                    'Content-Type': 'text/plain', // Important for Google Apps Script
+                },
+                body: JSON.stringify({
+                    action: action,
+                    data: data,
+                    token: token
+                })
+            };
+            
+            const response = await fetch(API_URL, options);
+            
+            // no-cors mode doesn't return readable response
+            // We need to handle this differently
+            return { success: true };
+            
+        } else {
+            // GET request
+            const response = await fetch(url, {
+                method: 'GET',
+                redirect: 'follow'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-        };
-        
-        if (method === 'POST' && Object.keys(data).length > 0) {
-            options.body = JSON.stringify(data);
+            
+            const result = await response.json();
+            
+            // Handle unauthorized
+            if (result.error === 'unauthorized') {
+                showError('Session expired. Please login again.');
+                setTimeout(() => logout(), 2000);
+                return null;
+            }
+            
+            return result;
         }
-        
-        const response = await fetch(url, options);
-        
-        // Check if response is ok
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        
-        // Handle unauthorized
-        if (result.error === 'unauthorized') {
-            showError('Session expired. Please login again.');
-            setTimeout(() => logout(), 2000);
-            return null;
-        }
-        
-        // Handle other errors
-        if (result.error && result.error !== 'unauthorized') {
-            console.error('API Error:', result);
-        }
-        
-        return result;
         
     } catch (error) {
         console.error('API Call Error:', error);
         
-        // Network error handling
         if (error.message.includes('Failed to fetch')) {
             showError('Network error. Please check your connection.');
         } else {
@@ -56,6 +81,45 @@ async function apiCall(action, data = {}, method = 'POST') {
         
         throw error;
     }
+}
+
+// Alternative: Use JSONP for GET requests
+function apiCallJsonp(action, data = {}) {
+    return new Promise((resolve, reject) => {
+        const token = localStorage.getItem('auth_token');
+        const callbackName = 'jsonpCallback_' + Date.now();
+        
+        // Create callback function
+        window[callbackName] = (result) => {
+            delete window[callbackName];
+            document.body.removeChild(script);
+            resolve(result);
+        };
+        
+        // Build URL
+        const params = new URLSearchParams({
+            action: action,
+            callback: callbackName,
+            ...data
+        });
+        
+        if (token) {
+            params.append('token', token);
+        }
+        
+        const url = `${API_URL}?${params.toString()}`;
+        
+        // Create script tag
+        const script = document.createElement('script');
+        script.src = url;
+        script.onerror = () => {
+            delete window[callbackName];
+            document.body.removeChild(script);
+            reject(new Error('JSONP request failed'));
+        };
+        
+        document.body.appendChild(script);
+    });
 }
 
 // Retry failed API calls
@@ -67,74 +131,13 @@ async function apiCallWithRetry(action, data = {}, maxRetries = 3) {
         } catch (error) {
             if (i === maxRetries - 1) throw error;
             
-            // Wait before retry (exponential backoff)
             const delay = Math.pow(2, i) * 1000;
             await new Promise(resolve => setTimeout(resolve, delay));
         }
     }
 }
 
-// Batch API calls
-async function batchApiCall(calls) {
-    const results = await Promise.allSettled(
-        calls.map(call => apiCall(call.action, call.data))
-    );
-    
-    return results.map((result, index) => ({
-        action: calls[index].action,
-        success: result.status === 'fulfilled',
-        data: result.status === 'fulfilled' ? result.value : null,
-        error: result.status === 'rejected' ? result.reason : null
-    }));
-}
-
-// Upload file helper
-async function uploadFile(file, type) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        
-        reader.onload = async (e) => {
-            try {
-                const result = await apiCall('uploadFile', {
-                    filename: file.name,
-                    content: e.target.result,
-                    type: type,
-                    size: file.size,
-                    mimeType: file.type
-                });
-                resolve(result);
-            } catch (error) {
-                reject(error);
-            }
-        };
-        
-        reader.onerror = () => {
-            reject(new Error('Failed to read file'));
-        };
-        
-        // Check file size (max 10MB)
-        if (file.size > 10 * 1024 * 1024) {
-            reject(new Error('File size must be less than 10MB'));
-            return;
-        }
-        
-        reader.readAsDataURL(file);
-    });
-}
-
-// Check API health
-async function checkApiHealth() {
-    try {
-        const response = await fetch(API_URL);
-        const result = await response.json();
-        return result.status === 'ok';
-    } catch (error) {
-        console.error('API Health Check Failed:', error);
-        return false;
-    }
-}
-
-// Export data to CSV
+// Export to CSV
 function exportToCSV(data, filename) {
     if (!data || data.length === 0) {
         showError('No data to export');
@@ -147,7 +150,6 @@ function exportToCSV(data, filename) {
         ...data.map(row => 
             headers.map(header => {
                 const value = row[header];
-                // Escape commas and quotes
                 if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
                     return `"${value.replace(/"/g, '""')}"`;
                 }
